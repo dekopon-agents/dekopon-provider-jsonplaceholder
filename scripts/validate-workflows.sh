@@ -70,8 +70,19 @@ for name, marker in visibility_paths.items():
         raise SystemExit(f"release workflow lost {name}")
 if "status=$(curl --silent --show-error --location --get" not in verifier:
     raise SystemExit("anonymous attestation verifier lost its curl-backed fetch path")
-if "for command in curl gh jq mktemp" not in verifier:
-    raise SystemExit("anonymous attestation verifier does not require curl")
+if "for command in base64 curl gh jq mktemp" not in verifier:
+    raise SystemExit("anonymous attestation verifier does not require its verification tools")
+retry_markers = {
+    "run ID input": "run_id=${8:?}",
+    "run attempt input": "run_attempt=${9:?}",
+    "current invocation binding": ".verificationResult.signature.certificate.runInvocationURI == $invocation",
+    "exactly one current invocation": 'if [[ "$verified" -ne 1 ]]',
+}
+for name, marker in retry_markers.items():
+    if marker not in verifier:
+        raise SystemExit(f"anonymous attestation verifier lost {name}")
+if release.count('            "$GITHUB_RUN_ID" \\\n            "$GITHUB_RUN_ATTEMPT"') != 4:
+    raise SystemExit("all anonymous attestation checks must bind to this run attempt")
 print("release network and initial-visibility paths passed source smoke checks")
 PY
 

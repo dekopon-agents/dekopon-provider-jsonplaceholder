@@ -772,7 +772,9 @@ jobs:
             'https://slsa.dev/provenance/v1' \
             "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
             "$GITHUB_REF" \
-            "$GITHUB_SHA"
+            "$GITHUB_SHA" \
+            "$GITHUB_RUN_ID" \
+            "$GITHUB_RUN_ATTEMPT"
           ./scripts/verify-attestation-anonymously.sh \
             "$RUNNER_TEMP/prepublish/jsonplaceholder-provider.wasm" \
             "$GITHUB_REPOSITORY" \
@@ -780,7 +782,9 @@ jobs:
             'https://cyclonedx.org/bom' \
             "$GITHUB_REPOSITORY/.github/workflows/release.yml" \
             "$GITHUB_REF" \
-            "$GITHUB_SHA"
+            "$GITHUB_SHA" \
+            "$GITHUB_RUN_ID" \
+            "$GITHUB_RUN_ATTEMPT"
 
           wasm-tools component wit --json "$RUNNER_TEMP/prepublish/jsonplaceholder-provider.wasm" \
             >"$RUNNER_TEMP/wit.json"
@@ -939,7 +943,9 @@ jobs:
             'https://slsa.dev/provenance/v1' \
             dekopon-agents/dekopon-provider-jsonplaceholder/.github/workflows/release.yml \
             "$GITHUB_REF" \
-            "$GITHUB_SHA"
+            "$GITHUB_SHA" \
+            "$GITHUB_RUN_ID" \
+            "$GITHUB_RUN_ATTEMPT"
           ./scripts/verify-attestation-anonymously.sh \
             "$RUNNER_TEMP/release/jsonplaceholder-provider.wasm" \
             dekopon-agents/dekopon-provider-jsonplaceholder \
@@ -947,7 +953,9 @@ jobs:
             'https://cyclonedx.org/bom' \
             dekopon-agents/dekopon-provider-jsonplaceholder/.github/workflows/release.yml \
             "$GITHUB_REF" \
-            "$GITHUB_SHA"
+            "$GITHUB_SHA" \
+            "$GITHUB_RUN_ID" \
+            "$GITHUB_RUN_ATTEMPT"
           wasm-tools component wit --json "$RUNNER_TEMP/release/jsonplaceholder-provider.wasm" \
             >"$RUNNER_TEMP/wit.json"
           wasm-tools component wit "$RUNNER_TEMP/release/jsonplaceholder-provider.wasm" \
