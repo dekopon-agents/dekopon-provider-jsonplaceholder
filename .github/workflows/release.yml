@@ -332,7 +332,7 @@ jobs:
           upload_asset() {
             local name=$1
             local output=$2
-            jsonplaceholder --fail --silent --show-error --location \
+            curl --fail --silent --show-error --location \
               --request POST \
               --header "Authorization: Bearer $GH_TOKEN" \
               --header 'Accept: application/vnd.github+json' \
@@ -400,14 +400,15 @@ jobs:
             "$RUNNER_TEMP/draft-assets/jsonplaceholder-provider.wasm.sha256"
 
   ghcr:
-    name: Create, privately validate, then expose one OCI layer
+    name: Create, validate, then expose one OCI layer
     needs: [build, draft]
     runs-on: ubuntu-24.04
     permissions:
-      contents: write # Read the exact draft by ID for package/release coordination.
+      contents: read # Read the exact draft by ID for package/release coordination.
       packages: write # Create and change visibility of the one owned GHCR package.
     outputs:
       prior_visibility: ${{ steps.preflight.outputs.prior_visibility }}
+      initial_visibility: ${{ steps.capture.outputs.initial_visibility }}
       manifest_digest: ${{ steps.layout.outputs.manifest_digest }}
       push_started: ${{ steps.state.outputs.push_started }}
       package_id: ${{ steps.capture.outputs.package_id }}
@@ -439,7 +440,7 @@ jobs:
         run: |
           set -euo pipefail
           archive="oras_${ORAS_VERSION}_linux_amd64.tar.gz"
-          jsonplaceholder --fail --silent --show-error --location \
+          curl --fail --silent --show-error --location \
             "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/${archive}" \
             --output "$RUNNER_TEMP/$archive"
           echo "$ORAS_LINUX_AMD64_SHA256  $RUNNER_TEMP/$archive" | shasum -a 256 -c -
@@ -453,7 +454,7 @@ jobs:
         run: |
           set -euo pipefail
           body="$RUNNER_TEMP/package-before.json"
-          status=$(jsonplaceholder --silent --show-error --location \
+          status=$(curl --silent --show-error --location \
             --output "$body" --write-out '%{http_code}' \
             --header "Authorization: Bearer $GH_TOKEN" \
             --header 'Accept: application/vnd.github+json' \
@@ -527,7 +528,7 @@ jobs:
             "$RUNNER_TEMP/oci-layout@$MANIFEST_DIGEST" "$OCI_REPOSITORY:$VERSION"
           [[ "$("$RUNNER_TEMP/bin-oras" resolve "$OCI_REPOSITORY:$VERSION")" == \
              "$MANIFEST_DIGEST" ]]
-      - name: Capture IDs only after the exact private package version exists
+      - name: Capture IDs and either allowed initial visibility after the exact version exists
         id: capture
         env:
           GH_TOKEN: ${{ github.token }}
@@ -540,34 +541,66 @@ jobs:
             if package=$(gh api "$PACKAGE_ENDPOINT" 2>/dev/null) && \
                gh api --paginate --slurp "$PACKAGE_ENDPOINT/versions?per_page=100" \
                  | jq 'add // []' >"$RUNNER_TEMP/versions.json"; then
-              package_id=$(jq -er 'select(.visibility == "private") | .id' <<<"$package")
+              initial_visibility=$(jq -er '
+                select(.visibility == "private" or .visibility == "public") | .visibility
+              ' <<<"$package")
+              package_id=$(jq -er '.id' <<<"$package")
               count=$(jq 'length' "$RUNNER_TEMP/versions.json")
               version_id=$(jq -r --arg digest "$MANIFEST_DIGEST" --arg tag "$VERSION" '
                 .[] | select(.name == $digest and .metadata.container.tags == [$tag]) | .id
               ' "$RUNNER_TEMP/versions.json")
               if [[ "$package_id" =~ ^[0-9]+$ && "$count" == 1 && \
                     "$version_id" =~ ^[0-9]+$ ]]; then
-                echo "package_id=$package_id" >>"$GITHUB_OUTPUT"
-                echo "package_version_id=$version_id" >>"$GITHUB_OUTPUT"
+                {
+                  echo "initial_visibility=$initial_visibility"
+                  echo "package_id=$package_id"
+                  echo "package_version_id=$version_id"
+                } >>"$GITHUB_OUTPUT"
                 exit 0
               fi
             fi
             sleep 5
           done
-          echo 'error: exact private package/version did not become observable' >&2
+          echo 'error: exact package/version with private or public visibility did not become observable' >&2
           exit 1
-      - name: Verify private bytes, pinned manifest, and exact tag set
+      - name: Immediately verify captured bytes, manifest, and tag set under initial visibility
         env:
           EXPECTED_SHA: ${{ needs.build.outputs.sha256 }}
+          INITIAL_VISIBILITY: ${{ steps.capture.outputs.initial_visibility }}
           MANIFEST_DIGEST: ${{ steps.layout.outputs.manifest_digest }}
+          PACKAGE_ID: ${{ steps.capture.outputs.package_id }}
+          PACKAGE_VERSION_ID: ${{ steps.capture.outputs.package_version_id }}
+          GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
-          [[ "$("$RUNNER_TEMP/bin-oras" resolve "$OCI_REPOSITORY:$VERSION")" == \
-             "$MANIFEST_DIGEST" ]]
-          "$RUNNER_TEMP/bin-oras" manifest fetch "$OCI_REPOSITORY@$MANIFEST_DIGEST" \
-            >"$RUNNER_TEMP/remote-manifest.json"
+          package=$(gh api "$PACKAGE_ENDPOINT")
+          gh api --paginate --slurp "$PACKAGE_ENDPOINT/versions?per_page=100" \
+            | jq 'add // []' >"$RUNNER_TEMP/versions-after-capture.json"
+          jq -e --argjson package_id "$PACKAGE_ID" --arg visibility "$INITIAL_VISIBILITY" '
+            .id == $package_id and .visibility == $visibility and
+            ($visibility == "private" or $visibility == "public")
+          ' <<<"$package" >/dev/null
+          jq -e --argjson id "$PACKAGE_VERSION_ID" \
+            --arg digest "$MANIFEST_DIGEST" --arg tag "$VERSION" '
+              length == 1 and
+              .[0].id == $id and
+              .[0].name == $digest and
+              .[0].metadata.container.tags == [$tag]
+            ' "$RUNNER_TEMP/versions-after-capture.json" >/dev/null
+
+          registry=()
+          pull_dir="$RUNNER_TEMP/private-pull"
+          if [[ "$INITIAL_VISIBILITY" == public ]]; then
+            printf '{"auths":{}}\n' >"$RUNNER_TEMP/initial-anonymous-auth.json"
+            registry=(--registry-config "$RUNNER_TEMP/initial-anonymous-auth.json")
+            pull_dir="$RUNNER_TEMP/initial-public-pull"
+          fi
+          [[ "$("$RUNNER_TEMP/bin-oras" resolve "${registry[@]}" \
+              "$OCI_REPOSITORY:$VERSION")" == "$MANIFEST_DIGEST" ]]
+          "$RUNNER_TEMP/bin-oras" manifest fetch "${registry[@]}" \
+            "$OCI_REPOSITORY@$MANIFEST_DIGEST" >"$RUNNER_TEMP/remote-manifest.json"
           cmp "$RUNNER_TEMP/local-manifest.json" "$RUNNER_TEMP/remote-manifest.json"
           jq -e --arg digest "sha256:$EXPECTED_SHA" '
             (.layers | length) == 1 and
@@ -575,16 +608,18 @@ jobs:
             .layers[0].mediaType == "application/wasm" and
             .layers[0].annotations["org.opencontainers.image.title"] == "jsonplaceholder-provider.wasm"
           ' "$RUNNER_TEMP/remote-manifest.json" >/dev/null
-          rm -rf "$RUNNER_TEMP/private-pull" && mkdir "$RUNNER_TEMP/private-pull"
-          (cd "$RUNNER_TEMP/private-pull" && \
-            "$RUNNER_TEMP/bin-oras" pull "$OCI_REPOSITORY@$MANIFEST_DIGEST")
-          test "$(find "$RUNNER_TEMP/private-pull" -maxdepth 1 -type f | wc -l)" -eq 1
-          cmp dist/jsonplaceholder-provider.wasm "$RUNNER_TEMP/private-pull/jsonplaceholder-provider.wasm"
-          [[ "$("$RUNNER_TEMP/bin-oras" repo tags "$OCI_REPOSITORY" | sort)" == "$VERSION" ]]
-      - name: Make the validated package public last
+          rm -rf "$pull_dir" && mkdir "$pull_dir"
+          (cd "$pull_dir" && "$RUNNER_TEMP/bin-oras" pull "${registry[@]}" \
+            "$OCI_REPOSITORY@$MANIFEST_DIGEST")
+          test "$(find "$pull_dir" -maxdepth 1 -type f | wc -l)" -eq 1
+          cmp dist/jsonplaceholder-provider.wasm "$pull_dir/jsonplaceholder-provider.wasm"
+          [[ "$("$RUNNER_TEMP/bin-oras" repo tags "${registry[@]}" \
+              "$OCI_REPOSITORY" | sort)" == "$VERSION" ]]
+      - name: Ensure the validated package is public
         id: publish
         env:
           GH_TOKEN: ${{ github.token }}
+          INITIAL_VISIBILITY: ${{ steps.capture.outputs.initial_visibility }}
           MANIFEST_DIGEST: ${{ steps.layout.outputs.manifest_digest }}
           PACKAGE_ID: ${{ steps.capture.outputs.package_id }}
           PACKAGE_VERSION_ID: ${{ steps.capture.outputs.package_version_id }}
@@ -595,8 +630,9 @@ jobs:
           package=$(gh api "$PACKAGE_ENDPOINT")
           gh api --paginate --slurp "$PACKAGE_ENDPOINT/versions?per_page=100" \
             | jq 'add // []' >"$RUNNER_TEMP/versions-before-public.json"
-          jq -e --argjson package_id "$PACKAGE_ID" '
-            .id == $package_id and .visibility == "private"
+          jq -e --argjson package_id "$PACKAGE_ID" --arg visibility "$INITIAL_VISIBILITY" '
+            .id == $package_id and .visibility == $visibility and
+            ($visibility == "private" or $visibility == "public")
           ' <<<"$package" >/dev/null
           jq -e --argjson id "$PACKAGE_VERSION_ID" \
             --arg digest "$MANIFEST_DIGEST" --arg tag "$VERSION" '
@@ -608,8 +644,10 @@ jobs:
           [[ "$("$RUNNER_TEMP/bin-oras" resolve "$OCI_REPOSITORY:$VERSION")" == \
              "$MANIFEST_DIGEST" ]]
           [[ "$("$RUNNER_TEMP/bin-oras" repo tags "$OCI_REPOSITORY" | sort)" == "$VERSION" ]]
-          gh api --method PATCH "$PACKAGE_ENDPOINT/visibility" \
-            -f visibility=public >/dev/null
+          if [[ "$INITIAL_VISIBILITY" == private ]]; then
+            gh api --method PATCH "$PACKAGE_ENDPOINT/visibility" \
+              -f visibility=public >/dev/null
+          fi
           [[ "$(gh api "$PACKAGE_ENDPOINT" --jq .visibility)" == public ]]
           echo 'publicized=true' >>"$GITHUB_OUTPUT"
       - name: Verify the now-public OCI artifact without credentials
@@ -659,7 +697,7 @@ jobs:
           rustup toolchain install "$RELEASE_RUST" --profile minimal
           cargo "+$RELEASE_RUST" install wasm-tools --version "$WASM_TOOLS_VERSION" --locked
           archive="oras_${ORAS_VERSION}_linux_amd64.tar.gz"
-          jsonplaceholder --fail --silent --show-error --location \
+          curl --fail --silent --show-error --location \
             "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/${archive}" \
             --output "$RUNNER_TEMP/$archive"
           echo "$ORAS_LINUX_AMD64_SHA256  $RUNNER_TEMP/$archive" | shasum -a 256 -c -
@@ -854,7 +892,7 @@ jobs:
           rustup toolchain install "$RELEASE_RUST" --profile minimal
           cargo "+$RELEASE_RUST" install wasm-tools --version "$WASM_TOOLS_VERSION" --locked
           archive="oras_${ORAS_VERSION}_linux_amd64.tar.gz"
-          jsonplaceholder --fail --silent --show-error --location \
+          curl --fail --silent --show-error --location \
             "https://github.com/oras-project/oras/releases/download/v${ORAS_VERSION}/${archive}" \
             --output "$RUNNER_TEMP/$archive"
           echo "$ORAS_LINUX_AMD64_SHA256  $RUNNER_TEMP/$archive" | shasum -a 256 -c -
@@ -873,15 +911,15 @@ jobs:
           unset GH_TOKEN GITHUB_TOKEN
           base="https://github.com/dekopon-agents/dekopon-provider-jsonplaceholder/releases/download/v$VERSION"
           mkdir "$RUNNER_TEMP/release"
-          jsonplaceholder --fail --silent --show-error --location \
+          curl --fail --silent --show-error --location \
             "$base/jsonplaceholder-provider.wasm" -o "$RUNNER_TEMP/release/jsonplaceholder-provider.wasm"
-          jsonplaceholder --fail --silent --show-error --location \
+          curl --fail --silent --show-error --location \
             "$base/jsonplaceholder-provider.wasm.sha256" \
             -o "$RUNNER_TEMP/release/jsonplaceholder-provider.wasm.sha256"
           (cd "$RUNNER_TEMP/release" && shasum -a 256 -c jsonplaceholder-provider.wasm.sha256)
           [[ "$(awk '{print $1}' "$RUNNER_TEMP/release/jsonplaceholder-provider.wasm.sha256")" == \
              "$EXPECTED_SHA" ]]
-          release=$(jsonplaceholder --fail --silent --show-error \
+          release=$(curl --fail --silent --show-error \
             "https://api.github.com/repos/dekopon-agents/dekopon-provider-jsonplaceholder/releases/tags/v$VERSION")
           jq -e \
             --argjson release_id "$RELEASE_ID" \
@@ -992,7 +1030,7 @@ jobs:
             if [[ -n "$data" ]]; then
               args+=(--header 'Content-Type: application/json' --data "$data")
             fi
-            if ! status=$(jsonplaceholder "${args[@]}" "$api/$endpoint"); then
+            if ! status=$(curl "${args[@]}" "$api/$endpoint"); then
               echo "error: cleanup API request failed: $method $endpoint" >&2
               failures=$((failures + 1))
               printf '000'

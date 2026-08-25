@@ -15,7 +15,7 @@ api=${GITHUB_API_URL:-https://api.github.com}
 [[ "$repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
 [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
 [[ "$source_digest" =~ ^[0-9a-f]{40}$ ]]
-for command in jsonplaceholder gh jq mktemp; do
+for command in curl gh jq mktemp; do
   command -v "$command" >/dev/null 2>&1 || {
     echo "error: $command is required" >&2
     exit 1
@@ -27,7 +27,7 @@ trap 'rm -rf "$work"' EXIT
 response="$work/attestations.json"
 status=
 for _attempt in {1..12}; do
-  status=$(jsonplaceholder --silent --show-error --location --get \
+  status=$(curl --silent --show-error --location --get \
     --output "$response" --write-out '%{http_code}' \
     --header 'Accept: application/vnd.github+json' \
     --header 'X-GitHub-Api-Version: 2022-11-28' \

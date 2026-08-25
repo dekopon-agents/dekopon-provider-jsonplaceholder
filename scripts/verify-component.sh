@@ -34,10 +34,12 @@ wit_json=$(mktemp)
 wit_text=$(mktemp)
 core_text=$(mktemp)
 core_imports=$(mktemp)
-trap 'rm -f "$wit_json" "$wit_text" "$core_text" "$core_imports"' EXIT
+component_sections=$(mktemp)
+trap 'rm -f "$wit_json" "$wit_text" "$core_text" "$core_imports" "$component_sections"' EXIT
 wasm-tools component wit --json "$component" >"$wit_json"
 wasm-tools component wit "$component" >"$wit_text"
 wasm-tools print "$core" >"$core_text"
+wasm-tools objdump "$component" >"$component_sections"
 
 python3 - "$wit_json" "$root/THIRD_PARTY_NOTICES.md" "$core" "$component" <<'PY'
 import json
@@ -82,7 +84,7 @@ if grep -Eqi 'wasi:|wasix|wasi_snapshot|wasm-bindgen|js-sys' "$wit_text" "$core_
   echo "error: ambient interface/runtime found in component" >&2
   exit 1
 fi
-if ! wasm-tools objdump "$component" | grep -q 'custom "dekopon.third-party-notices"'; then
+if ! grep -q 'custom "dekopon.third-party-notices"' "$component_sections"; then
   echo "error: notice custom section was not preserved by componentization" >&2
   exit 1
 fi

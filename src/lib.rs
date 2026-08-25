@@ -62,7 +62,8 @@ impl Provider for JsonPlaceholder {
                             "endpoint": {
                                 "type": "string",
                                 "maxLength": MAX_ENDPOINT_BYTES,
-                                "description": "Optional broker-constrained endpoint; defaults to JSONPlaceholder. Plain HTTP accepts only literal loopback test endpoints."
+                                "x-dekopon-maxUtf8Bytes": MAX_ENDPOINT_BYTES,
+                                "description": "Optional broker-constrained endpoint, limited to 512 UTF-8 bytes; defaults to JSONPlaceholder. Plain HTTP accepts only literal loopback test endpoints."
                             }
                         },
                         "required": ["postId"],
@@ -81,12 +82,25 @@ impl Provider for JsonPlaceholder {
                         "type": "object",
                         "properties": {
                             "userId": {"type": "integer", "minimum": 1, "maximum": 10},
-                            "title": {"type": "string", "minLength": 1, "maxLength": MAX_TITLE_BYTES},
-                            "body": {"type": "string", "minLength": 1, "maxLength": MAX_BODY_BYTES},
+                            "title": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": MAX_TITLE_BYTES,
+                                "x-dekopon-maxUtf8Bytes": MAX_TITLE_BYTES,
+                                "description": "Post title, limited to 256 UTF-8 bytes."
+                            },
+                            "body": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": MAX_BODY_BYTES,
+                                "x-dekopon-maxUtf8Bytes": MAX_BODY_BYTES,
+                                "description": "Post body, limited to 4096 UTF-8 bytes."
+                            },
                             "endpoint": {
                                 "type": "string",
                                 "maxLength": MAX_ENDPOINT_BYTES,
-                                "description": "Optional broker-constrained endpoint; defaults to JSONPlaceholder. Plain HTTP accepts only literal loopback test endpoints."
+                                "x-dekopon-maxUtf8Bytes": MAX_ENDPOINT_BYTES,
+                                "description": "Optional broker-constrained endpoint, limited to 512 UTF-8 bytes; defaults to JSONPlaceholder. Plain HTTP accepts only literal loopback test endpoints."
                             }
                         },
                         "required": ["userId", "title", "body"],
@@ -294,7 +308,7 @@ dekopon_provider_sdk::export_provider_with_bindings!(JsonPlaceholder, bindings);
 
 #[cfg(test)]
 mod tests {
-    use dekopon_provider_http::{HttpErrorCode, Response};
+    use dekopon_provider_http::{Header, HttpErrorCode, Response};
     use dekopon_provider_sdk::{EffectKind, Idempotency, Provider, RiskLevel};
     use serde_json::{Value, json};
 
@@ -331,6 +345,10 @@ mod tests {
             |request| {
                 assert_eq!(request.method, "GET");
                 assert_eq!(request.uri, "http://127.0.0.1:43123/posts/7");
+                assert_eq!(
+                    request.headers,
+                    vec![Header::text("accept", "application/json").expect("fixed header")]
+                );
                 assert!(request.body.is_empty());
                 Ok(Response {
                     status: 200,
@@ -363,6 +381,13 @@ mod tests {
             |request| {
                 assert_eq!(request.method, "POST");
                 assert_eq!(request.uri, "http://[::1]:43124/posts");
+                assert_eq!(
+                    request.headers,
+                    vec![
+                        Header::text("accept", "application/json").expect("fixed header"),
+                        Header::text("content-type", "application/json").expect("fixed header"),
+                    ]
+                );
                 assert_eq!(
                     serde_json::from_slice::<Value>(&request.body).expect("request body is JSON"),
                     json!({"userId": 3, "title": "created title", "body": "created body"})
@@ -461,8 +486,87 @@ mod tests {
     }
 
     #[test]
-    fn capability_inputs_are_closed_and_enforce_utf8_byte_bounds() {
+    fn manifest_documents_machine_readable_utf8_byte_limits() {
+        let manifest = JsonPlaceholder::manifest();
+        let get_properties = &manifest.capabilities[0].input_schema["properties"];
+        assert_eq!(
+            get_properties["endpoint"]["x-dekopon-maxUtf8Bytes"],
+            super::MAX_ENDPOINT_BYTES
+        );
+        let create_properties = &manifest.capabilities[1].input_schema["properties"];
+        for (field, bytes) in [
+            ("title", super::MAX_TITLE_BYTES),
+            ("body", super::MAX_BODY_BYTES),
+            ("endpoint", super::MAX_ENDPOINT_BYTES),
+        ] {
+            assert_eq!(create_properties[field]["x-dekopon-maxUtf8Bytes"], bytes);
+            assert!(
+                create_properties[field]["description"]
+                    .as_str()
+                    .expect("limit description is text")
+                    .contains("UTF-8 bytes")
+            );
+        }
+    }
+
+    #[test]
+    fn exact_input_boundaries_are_accepted() {
+        for post_id in [1, 100] {
+            let output = invoke_with(
+                &capability("jsonplaceholder.posts.get"),
+                json!({"postId": post_id}),
+                |_| {
+                    Ok(Response {
+                        status: 200,
+                        headers: Vec::new(),
+                        body: serde_json::to_vec(&json!({
+                            "userId": 1,
+                            "id": post_id,
+                            "title": "t",
+                            "body": "b"
+                        }))
+                        .expect("fixture serializes"),
+                    })
+                },
+            )
+            .expect("GET boundary is accepted");
+            assert_eq!(output["post"]["id"], post_id);
+        }
+
+        for (user_id, title, body) in [
+            (1, "t".to_owned(), "b".to_owned()),
+            (10, "x".repeat(super::MAX_TITLE_BYTES), "b".to_owned()),
+            (1, "é".repeat(super::MAX_TITLE_BYTES / 2), "b".to_owned()),
+            (1, "t".to_owned(), "x".repeat(super::MAX_BODY_BYTES)),
+            (1, "t".to_owned(), "é".repeat(super::MAX_BODY_BYTES / 2)),
+        ] {
+            let input_title = title.clone();
+            let input_body = body.clone();
+            invoke_with(
+                &capability("jsonplaceholder.posts.create"),
+                json!({"userId": user_id, "title": title, "body": body}),
+                move |_| {
+                    Ok(Response {
+                        status: 201,
+                        headers: Vec::new(),
+                        body: serde_json::to_vec(&json!({
+                            "userId": user_id,
+                            "id": 101,
+                            "title": input_title,
+                            "body": input_body
+                        }))
+                        .expect("fixture serializes"),
+                    })
+                },
+            )
+            .expect("create boundary is accepted");
+        }
+    }
+
+    #[test]
+    fn capability_inputs_are_closed_and_reject_out_of_range_values() {
         for input in [
+            json!({"postId": 0}),
             json!({"postId": 101}),
             json!({"postId": 1, "extra": true}),
             json!({"postId": "1"}),
@@ -475,6 +579,7 @@ mod tests {
         }
         for input in [
             json!({"userId": 0, "title": "t", "body": "b"}),
+            json!({"userId": 11, "title": "t", "body": "b"}),
             json!({"userId": 1, "title": "", "body": "b"}),
             json!({"userId": 1, "title": "t", "body": ""}),
             json!({"userId": 1, "title": "t", "body": "b", "extra": true}),
@@ -490,8 +595,8 @@ mod tests {
     }
 
     #[test]
-    fn statuses_and_response_bounds_map_to_stable_errors() {
-        let get = |status, body: Value| {
+    fn get_status_and_response_matrix_maps_to_stable_errors() {
+        let get = |status, body: Vec<u8>| {
             invoke_with(
                 &capability("jsonplaceholder.posts.get"),
                 json!({"postId": 7}),
@@ -499,30 +604,72 @@ mod tests {
                     Ok(Response {
                         status,
                         headers: Vec::new(),
-                        body: serde_json::to_vec(&body).expect("fixture serializes"),
+                        body,
                     })
                 },
             )
             .expect_err("fixture fails")
         };
-        assert_eq!(get(404, json!({})).code(), "not-found");
-        assert_eq!(get(500, json!({})).code(), "unexpected-status");
-        assert_eq!(
-            get(
-                200,
-                json!({"userId": 2, "id": 8, "title": "title", "body": "body"})
+        let encoded = |body: Value| serde_json::to_vec(&body).expect("fixture serializes");
+        assert_eq!(get(404, encoded(json!({}))).code(), "not-found");
+        assert_eq!(get(500, encoded(json!({}))).code(), "unexpected-status");
+        assert_eq!(get(200, b"not JSON".to_vec()).code(), "invalid-response");
+        for body in [
+            json!({"userId": 2, "id": 0, "title": "t", "body": "b"}),
+            json!({"userId": 0, "id": 7, "title": "t", "body": "b"}),
+            json!({"userId": 11, "id": 7, "title": "t", "body": "b"}),
+            json!({"userId": 2, "id": 8, "title": "t", "body": "b"}),
+            json!({"userId": 2, "id": 7, "title": "", "body": "b"}),
+            json!({"userId": 2, "id": 7, "title": "x".repeat(4097), "body": "b"}),
+            json!({"userId": 2, "id": 7, "title": "t", "body": ""}),
+            json!({"userId": 2, "id": 7, "title": "t", "body": "x".repeat(16385)}),
+        ] {
+            assert_eq!(get(200, encoded(body)).code(), "invalid-response");
+        }
+    }
+
+    #[test]
+    fn create_status_echo_and_response_matrix_maps_to_stable_errors() {
+        let create = |status, body: Vec<u8>| {
+            invoke_with(
+                &capability("jsonplaceholder.posts.create"),
+                json!({"userId": 3, "title": "title", "body": "body"}),
+                |_| {
+                    Ok(Response {
+                        status,
+                        headers: Vec::new(),
+                        body,
+                    })
+                },
             )
-            .code(),
-            "invalid-response"
-        );
-        assert_eq!(
-            get(
-                200,
-                json!({"userId": 2, "id": 7, "title": "t", "body": "x".repeat(16385)})
-            )
-            .code(),
-            "invalid-response"
-        );
+            .expect_err("fixture fails")
+        };
+        let encoded = |body: Value| serde_json::to_vec(&body).expect("fixture serializes");
+        for status in [200, 404, 500] {
+            assert_eq!(
+                create(status, encoded(json!({}))).code(),
+                "unexpected-status"
+            );
+        }
+        assert_eq!(create(201, b"not JSON".to_vec()).code(), "invalid-response");
+        for body in [
+            json!({"userId": 3, "id": 0, "title": "title", "body": "body"}),
+            json!({"userId": 0, "id": 101, "title": "title", "body": "body"}),
+            json!({"userId": 11, "id": 101, "title": "title", "body": "body"}),
+            json!({"userId": 2, "id": 101, "title": "title", "body": "body"}),
+            json!({"userId": 3, "id": 101, "title": "different", "body": "body"}),
+            json!({"userId": 3, "id": 101, "title": "title", "body": "different"}),
+            json!({"userId": 3, "id": 101, "title": "", "body": "body"}),
+            json!({"userId": 3, "id": 101, "title": "x".repeat(4097), "body": "body"}),
+            json!({"userId": 3, "id": 101, "title": "title", "body": ""}),
+            json!({"userId": 3, "id": 101, "title": "title", "body": "x".repeat(16385)}),
+        ] {
+            assert_eq!(create(201, encoded(body)).code(), "invalid-response");
+        }
+    }
+
+    #[test]
+    fn unknown_capability_fails_before_http() {
         let unknown = invoke_with(
             &capability("jsonplaceholder.posts.delete"),
             json!({}),
