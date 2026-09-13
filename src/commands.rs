@@ -113,6 +113,7 @@ fn dispatch(
     Ok(CommandInvocation {
         capability: capability.parse().expect("static capability ID"),
         input,
+        secret_use: None,
     })
 }
 

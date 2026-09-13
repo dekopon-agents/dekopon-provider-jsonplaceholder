@@ -29,8 +29,6 @@ for name in sys.argv[1:]:
             raise SystemExit(f"{path}:{number}: Action is not pinned to a full commit SHA")
 
 release = pathlib.Path(".github/workflows/release.yml").read_text(encoding="utf-8")
-recovery = pathlib.Path(".github/workflows/recover-v0.1.0.yml").read_text(encoding="utf-8")
-recovery_helper = pathlib.Path("scripts/recover-v0.1.0-artifacts.sh").read_text(encoding="utf-8")
 verifier = pathlib.Path("scripts/verify-attestation-anonymously.sh").read_text(encoding="utf-8")
 for path, text in [
     (pathlib.Path(".github/workflows/release.yml"), release),
@@ -85,38 +83,7 @@ for name, marker in retry_markers.items():
 if release.count('            "$GITHUB_RUN_ID" \\\n            "$GITHUB_RUN_ATTEMPT"') != 4:
     raise SystemExit("all anonymous attestation checks must bind to this run attempt")
 
-recovery_markers = {
-    "manual one-shot trigger": "  workflow_dispatch:\n",
-    "explicit confirmation": "recover-v0.1.0-from-run-32810190719",
-    "source run": 'SOURCE_RUN_ID: "32810190719"',
-    "source run attempt": 'SOURCE_RUN_ATTEMPT: "1"',
-    "source commit": "SOURCE_SHA: dc925dd23240d2dbd3bd9c534347fd33552bbdf6",
-    "annotated tag object": "SOURCE_TAG_OBJECT: 41aaaa84aee32013c232a4186e4bb717081de256",
-    "component digest": "EXPECTED_SHA: 9562744e6c209a447cafcfe09d11a50ea1926945a4b52099714c7328c2fd5e5d",
-    "source-only helper": './scripts/recover-v0.1.0-artifacts.sh "$RUNNER_TEMP/tagged"',
-    "tagged attestation identity": '"$SOURCE_RUN_ID" \\\n            "$SOURCE_RUN_ATTEMPT"',
-    "draft-readable GHCR token": "contents: write # GitHub requires write authority to read a draft release by ID.",
-    "permission-separated cleanup": "Roll back only immutable state owned by a failed or cancelled run",
-}
-for name, marker in recovery_markers.items():
-    if marker not in recovery:
-        raise SystemExit(f"recovery workflow lost {name}")
-if "id-token: write" in recovery or "attestations: write" in recovery:
-    raise SystemExit("recovery must reuse, not replace, immutable tag-run attestations")
-for forbidden in ("cargo build", "cargo check", "cargo test", "./build.sh"):
-    if forbidden in recovery:
-        raise SystemExit(f"recovery must not rebuild bytes: found {forbidden}")
-helper_markers = {
-    "source component artifact": "component_artifact_id=9549973644",
-    "source SBOM artifact": "sbom_artifact_id=9549974073",
-    "source component archive": "component_archive_sha=c2cfa4e3bde2d1ca2b8acb36a5708d8ffe533516c974556800af0b6381fa4d20",
-    "source SBOM archive": "sbom_archive_sha=f62317641fcae48c30d259516dabb7082724f015eef89cfc170ce6ec1148fa48",
-    "SBOM predicate comparison": 'cmp "$destination/source-sbom.json" "$destination/attested-sbom.json"',
-}
-for name, marker in helper_markers.items():
-    if marker not in recovery_helper:
-        raise SystemExit(f"recovery helper lost {name}")
-print("release, recovery, network, and initial-visibility source smoke checks passed")
+print("release, network, and initial-visibility source smoke checks passed")
 PY
 
 [[ "$(actionlint -version | head -1)" == *"1.7.12"* ]] || {

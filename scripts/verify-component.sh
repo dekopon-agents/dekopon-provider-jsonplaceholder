@@ -12,8 +12,8 @@ maximum_bytes=$((512 * 1024))
 wasm-tools validate "$component"
 
 metadata=$(cargo metadata --locked --manifest-path "$root/Cargo.toml" --format-version 1)
-sdk_manifest=$(jq -er '.packages[] | select(.name == "dekopon-provider-sdk" and .version == "0.13.0") | .manifest_path' <<<"$metadata")
-http_manifest=$(jq -er '.packages[] | select(.name == "dekopon-provider-http" and .version == "0.13.0") | .manifest_path' <<<"$metadata")
+sdk_manifest=$(jq -er '.packages[] | select(.name == "dekopon-provider-sdk" and .version == "0.15.0") | .manifest_path' <<<"$metadata")
+http_manifest=$(jq -er '.packages[] | select(.name == "dekopon-provider-http" and .version == "0.15.0") | .manifest_path' <<<"$metadata")
 cmp "$(dirname "$sdk_manifest")/wit/provider.wit" "$root/wit/deps/provider.wit"
 cmp "$(dirname "$http_manifest")/wit/deps/http.wit" "$root/wit/deps/http.wit"
 
