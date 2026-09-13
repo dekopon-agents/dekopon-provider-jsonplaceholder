@@ -64,7 +64,6 @@ visibility_paths = {
     "captured initial visibility": "initial_visibility: ${{ steps.capture.outputs.initial_visibility }}",
     "private or public capture": '.visibility == "private" or .visibility == "public"',
     "immediate anonymous public verification": "initial-anonymous-auth.json",
-    "conditional privacy change": 'if [[ "$INITIAL_VISIBILITY" == private ]]; then',
     "draft-readable GHCR contents access": "contents: write # Read the exact captured draft by ID",
 }
 for name, marker in visibility_paths.items():

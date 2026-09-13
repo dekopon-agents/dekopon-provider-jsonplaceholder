@@ -4,8 +4,8 @@ use std::net::SocketAddr;
 
 use dekopon_provider_http::{Header, HttpError, Request, Response, method};
 use dekopon_provider_sdk::{
-    CapabilityId, EffectKind, Idempotency, Provider, ProviderApiVersion, ProviderCapability,
-    ProviderError, ProviderManifest, RiskLevel,
+    CapabilityId, EffectKind, Provider, ProviderApiVersion, ProviderCapability, ProviderError,
+    ProviderManifest, RiskLevel,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -54,7 +54,6 @@ impl Provider for JsonPlaceholder {
                     description: "Gets one JSONPlaceholder post by numeric ID".to_owned(),
                     effect: EffectKind::ReadOnly,
                     risk: RiskLevel::Low,
-                    idempotency: Idempotency::Idempotent,
                     input_schema: json!({
                         "type": "object",
                         "properties": {
@@ -77,7 +76,6 @@ impl Provider for JsonPlaceholder {
                     description: "Creates one non-persistent JSONPlaceholder post".to_owned(),
                     effect: EffectKind::ExternalWrite,
                     risk: RiskLevel::Medium,
-                    idempotency: Idempotency::NonIdempotent,
                     input_schema: json!({
                         "type": "object",
                         "properties": {
@@ -309,7 +307,7 @@ dekopon_provider_sdk::export_provider_with_bindings!(JsonPlaceholder, bindings);
 #[cfg(test)]
 mod tests {
     use dekopon_provider_http::{Header, HttpErrorCode, Response};
-    use dekopon_provider_sdk::{EffectKind, Idempotency, Provider, RiskLevel};
+    use dekopon_provider_sdk::{EffectKind, Provider, RiskLevel};
     use serde_json::{Value, json};
 
     use super::{JsonPlaceholder, endpoint, invoke_with};
@@ -325,16 +323,8 @@ mod tests {
         assert_eq!(manifest.capabilities.len(), 2);
         assert_eq!(manifest.capabilities[0].effect, EffectKind::ReadOnly);
         assert_eq!(manifest.capabilities[0].risk, RiskLevel::Low);
-        assert_eq!(
-            manifest.capabilities[0].idempotency,
-            Idempotency::Idempotent
-        );
         assert_eq!(manifest.capabilities[1].effect, EffectKind::ExternalWrite);
         assert_eq!(manifest.capabilities[1].risk, RiskLevel::Medium);
-        assert_eq!(
-            manifest.capabilities[1].idempotency,
-            Idempotency::NonIdempotent
-        );
     }
 
     #[test]

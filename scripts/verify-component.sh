@@ -8,17 +8,17 @@ core=${2:-"$root/target/wasm32-unknown-unknown/release/dekopon_jsonplaceholder_p
 maximum_bytes=$((512 * 1024))
 
 [[ -f "$component" && -f "$core" ]]
-[[ "$(wasm-tools --version | awk '{print $2}')" == "1.236.1" ]]
+[[ "$(wasm-tools --version | awk '{print $2}')" == "1.259.0" ]]
 wasm-tools validate "$component"
 
 metadata=$(cargo metadata --locked --manifest-path "$root/Cargo.toml" --format-version 1)
-sdk_manifest=$(jq -er '.packages[] | select(.name == "dekopon-provider-sdk" and .version == "0.11.1") | .manifest_path' <<<"$metadata")
-http_manifest=$(jq -er '.packages[] | select(.name == "dekopon-provider-http" and .version == "0.11.1") | .manifest_path' <<<"$metadata")
+sdk_manifest=$(jq -er '.packages[] | select(.name == "dekopon-provider-sdk" and .version == "0.13.0") | .manifest_path' <<<"$metadata")
+http_manifest=$(jq -er '.packages[] | select(.name == "dekopon-provider-http" and .version == "0.13.0") | .manifest_path' <<<"$metadata")
 cmp "$(dirname "$sdk_manifest")/wit/provider.wit" "$root/wit/deps/provider.wit"
 cmp "$(dirname "$http_manifest")/wit/deps/http.wit" "$root/wit/deps/http.wit"
 
 printf '%s  %s\n' \
-  '02ba5a92067f53bc8f48e10bf221229c5b7f33f791a031741da5011c32ab37c9' \
+  'eac383801715cc62f41f7267de5c191827cfd2c45c766cda5600cfef2e1c03dd' \
   "$root/wit/deps/provider.wit" \
   'd0655d1ceba81fbd810f125cfc8fb2cbd8ad0696d91d34631b6b54f185dbc174' \
   "$root/wit/deps/http.wit" | shasum -a 256 -c -
