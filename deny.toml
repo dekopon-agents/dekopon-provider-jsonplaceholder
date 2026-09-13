@@ -16,6 +16,13 @@ allow = [
   "Zlib",
 ]
 
+# Wasmtime 48 reaches encoding_rs through the SDK's non-default `host` feature, used only by the
+# dev-dependency broker host. Its `(Apache-2.0 OR MIT) AND BSD-3-Clause` never enters the shipped
+# wasm32-unknown-unknown closure, so name the one crate instead of allowing BSD-3-Clause globally.
+[[licenses.exceptions]]
+crate = "encoding_rs"
+allow = ["BSD-3-Clause"]
+
 [licenses.private]
 ignore = false
 
