@@ -91,7 +91,7 @@ jobs:
               if line and not line.startswith("#"):
                   name, version, _source = line.split(" ", 2)
                   inventory.add((name, version))
-          if tree != inventory or len(tree) != 38:
+          if tree != inventory or len(tree) != 43:
               raise SystemExit("isolated inventory differs from cargo tree normal/build graph")
           PY
           if grep -Eq 'source = "git\+|path\+' Cargo.lock; then
@@ -122,7 +122,7 @@ jobs:
             .bomFormat == "CycloneDX" and
             .specVersion == "1.5" and
             .metadata.component.name == "dekopon-jsonplaceholder-provider" and
-            (.components | length) == 38
+            (.components | length) == 43
           ' "$RUNNER_TEMP/first.cdx.json" >/dev/null
           if grep -aF "$GITHUB_WORKSPACE" "$RUNNER_TEMP/first.cdx.json"; then
             echo "error: SBOM retained the checkout path" >&2

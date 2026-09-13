@@ -4,11 +4,24 @@ use std::net::SocketAddr;
 
 use dekopon_provider_http::{Header, HttpError, Request, Response, method};
 use dekopon_provider_sdk::{
-    CapabilityId, EffectKind, Provider, ProviderApiVersion, ProviderCapability, ProviderError,
-    ProviderManifest, RiskLevel,
+    CapabilityId, CommandRun, EffectKind, Provider, ProviderApiVersion, ProviderCapability,
+    ProviderError, ProviderManifest, RiskLevel,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+
+mod commands;
+
+/// Gets one post by numeric ID.
+pub(crate) const POSTS_GET: &str = "jsonplaceholder.posts.get";
+/// Creates one non-persistent post.
+pub(crate) const POSTS_CREATE: &str = "jsonplaceholder.posts.create";
+/// The command word this provider contributes to the sandboxed shell.
+///
+/// Separator-free on purpose: `dekopon-core` refuses a command word that parses as a capability
+/// identifier. The tree below it mirrors the capability identifiers, so `placeholder posts get` is
+/// `jsonplaceholder.posts.get`.
+pub(crate) const COMMAND_WORD: &str = "placeholder";
 
 const DEFAULT_ENDPOINT: &str = "https://jsonplaceholder.typicode.com";
 const PRODUCTION_HOST: &str = "jsonplaceholder.typicode.com";
@@ -45,12 +58,10 @@ impl Provider for JsonPlaceholder {
                 .expect("static provider ID is valid"),
             description: "Reads and creates bounded JSONPlaceholder posts through broker HTTP"
                 .to_owned(),
-            command_words: Vec::new(),
+            command_words: vec![COMMAND_WORD.to_owned()],
             capabilities: vec![
                 ProviderCapability {
-                    id: "jsonplaceholder.posts.get"
-                        .parse()
-                        .expect("static capability ID is valid"),
+                    id: POSTS_GET.parse().expect("static capability ID is valid"),
                     description: "Gets one JSONPlaceholder post by numeric ID".to_owned(),
                     effect: EffectKind::ReadOnly,
                     risk: RiskLevel::Low,
@@ -70,9 +81,7 @@ impl Provider for JsonPlaceholder {
                     }),
                 },
                 ProviderCapability {
-                    id: "jsonplaceholder.posts.create"
-                        .parse()
-                        .expect("static capability ID is valid"),
+                    id: POSTS_CREATE.parse().expect("static capability ID is valid"),
                     description: "Creates one non-persistent JSONPlaceholder post".to_owned(),
                     effect: EffectKind::ExternalWrite,
                     risk: RiskLevel::Medium,
@@ -112,6 +121,10 @@ impl Provider for JsonPlaceholder {
     fn invoke(capability: &CapabilityId, input: Value) -> Result<Value, ProviderError> {
         invoke_with(capability, input, dekopon_provider_http::send)
     }
+
+    fn run_command(argv: &[String], stdin: Option<&str>) -> Result<CommandRun, ProviderError> {
+        commands::run(argv, stdin)
+    }
 }
 
 fn invoke_with<F>(capability: &CapabilityId, input: Value, send: F) -> Result<Value, ProviderError>
@@ -119,8 +132,8 @@ where
     F: FnOnce(Request) -> Result<Response, HttpError>,
 {
     match capability.as_str() {
-        "jsonplaceholder.posts.get" => get_post(input, send),
-        "jsonplaceholder.posts.create" => create_post(input, send),
+        POSTS_GET => get_post(input, send),
+        POSTS_CREATE => create_post(input, send),
         _ => Err(ProviderError::new(
             "unknown-capability",
             "unsupported JSONPlaceholder capability",
@@ -302,7 +315,7 @@ fn invalid_response() -> ProviderError {
     ProviderError::new("invalid-response", "endpoint returned an invalid post")
 }
 
-dekopon_provider_sdk::export_provider_with_bindings!(JsonPlaceholder, bindings);
+dekopon_provider_sdk::export_provider_with_cli!(JsonPlaceholder, bindings);
 
 #[cfg(test)]
 mod tests {
@@ -310,7 +323,7 @@ mod tests {
     use dekopon_provider_sdk::{EffectKind, Provider, RiskLevel};
     use serde_json::{Value, json};
 
-    use super::{JsonPlaceholder, endpoint, invoke_with};
+    use super::{COMMAND_WORD, JsonPlaceholder, endpoint, invoke_with};
 
     fn capability(value: &str) -> dekopon_provider_sdk::CapabilityId {
         value.parse().expect("valid capability fixture")
@@ -320,6 +333,7 @@ mod tests {
     fn manifest_separates_read_and_external_write_authority() {
         let manifest = JsonPlaceholder::manifest();
         assert_eq!(manifest.id.as_str(), "jsonplaceholder");
+        assert_eq!(manifest.command_words, [COMMAND_WORD]);
         assert_eq!(manifest.capabilities.len(), 2);
         assert_eq!(manifest.capabilities[0].effect, EffectKind::ReadOnly);
         assert_eq!(manifest.capabilities[0].risk, RiskLevel::Low);

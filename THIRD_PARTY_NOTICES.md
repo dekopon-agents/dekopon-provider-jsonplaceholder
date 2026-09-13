@@ -8,22 +8,27 @@ The provider itself is licensed under MIT OR Apache-2.0. Its complete terms are 
 
 | Package | Version | SPDX expression | `.crate` SHA-256 | Exact archive legal documents |
 |---|---:|---|---|---|
+| [`anstyle`](https://crates.io/crates/anstyle/1.0.14) | `1.0.14` | `MIT OR Apache-2.0` | `940b3a0ca603d1eade50a4846a2afffd5ef57a9feac2c0e2ec2e14f9ead76000` | `LICENSE-APACHE` (A014), `LICENSE-MIT` (A008) |
 | [`anyhow`](https://crates.io/crates/anyhow/1.0.104) | `1.0.104` | `MIT OR Apache-2.0` | `330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470` | `LICENSE-APACHE` (A006), `LICENSE-MIT` (A003) |
-| [`bitflags`](https://crates.io/crates/bitflags/2.13.1) | `2.13.1` | `MIT OR Apache-2.0` | `b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da` | `LICENSE-APACHE` (A011), `LICENSE-MIT` (A007) |
+| [`bitflags`](https://crates.io/crates/bitflags/2.13.1) | `2.13.1` | `MIT OR Apache-2.0` | `b588b76d00fde79687d7646a9b5bdf3cc0f655e0bbd080335a95d7e96f3587da` | `LICENSE-APACHE` (A012), `LICENSE-MIT` (A007) |
+| [`clap`](https://crates.io/crates/clap/4.6.6) | `4.6.6` | `MIT OR Apache-2.0` | `473c7e07f409a8d772161724aa8db6a765a2532a70f9667eeb7b49d3d02fbdca` | `LICENSE-APACHE` (A014), `LICENSE-MIT` (A008) |
+| [`clap_builder`](https://crates.io/crates/clap_builder/4.6.6) | `4.6.6` | `MIT OR Apache-2.0` | `7b48fea5a88e9ae728a2dcbedbfc0e730f7d60da42e1cb049a83c9fb8b789889` | `LICENSE-APACHE` (A014), `LICENSE-MIT` (A008) |
+| [`clap_derive`](https://crates.io/crates/clap_derive/4.6.4) | `4.6.4` | `MIT OR Apache-2.0` | `d012d2b9d65aca7f18f4d9878a045bc17899bba951561ba5ec3c2ba1eed9a061` | `LICENSE-APACHE` (A014), `LICENSE-MIT` (A008) |
+| [`clap_lex`](https://crates.io/crates/clap_lex/1.1.0) | `1.1.0` | `MIT OR Apache-2.0` | `c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9` | `LICENSE-APACHE` (A014), `LICENSE-MIT` (A008) |
 | [`dekopon-capability`](https://crates.io/crates/dekopon-capability/0.13.0) | `0.13.0` | `MIT OR Apache-2.0` | `a42301934fb6650c6cdd9fcabadcddb65fb82c9dd1baeb29c15e6783c91292fe` | None in archive; see bundled P001/P002 terms |
 | [`dekopon-core`](https://crates.io/crates/dekopon-core/0.13.0) | `0.13.0` | `MIT OR Apache-2.0` | `ab993c8d4b1f440c63dfdb00275bdfbc30fd51ae650035624666e807be06f016` | None in archive; see bundled P001/P002 terms |
 | [`dekopon-provider-http`](https://crates.io/crates/dekopon-provider-http/0.13.0) | `0.13.0` | `MIT OR Apache-2.0` | `fa7a91a2fd2ed0e426d331719b3e205a1b989de48bcb9bd20f00adbf02357163` | None in archive; see bundled P001/P002 terms |
 | [`dekopon-provider-sdk`](https://crates.io/crates/dekopon-provider-sdk/0.13.0) | `0.13.0` | `MIT OR Apache-2.0` | `3744dadb6220a9c0f50ce2ee58ef709d0141b3a1faa4e7bda9ca8beab6e2399b` | None in archive; see bundled P001/P002 terms |
-| [`equivalent`](https://crates.io/crates/equivalent/1.0.2) | `1.0.2` | `Apache-2.0 OR MIT` | `877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f` | `LICENSE-APACHE` (A011), `LICENSE-MIT` (A008) |
-| [`foldhash`](https://crates.io/crates/foldhash/0.2.0) | `0.2.0` | `Zlib` | `77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb` | `LICENSE` (A012) |
-| [`hashbrown`](https://crates.io/crates/hashbrown/0.17.1) | `0.17.1` | `MIT OR Apache-2.0` | `ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a` | `LICENSE-APACHE` (A011), `LICENSE-MIT` (A015) |
-| [`heck`](https://crates.io/crates/heck/0.5.0) | `0.5.0` | `MIT OR Apache-2.0` | `2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea` | `LICENSE-APACHE` (A011), `LICENSE-MIT` (A009) |
-| [`id-arena`](https://crates.io/crates/id-arena/2.3.0) | `2.3.0` | `MIT/Apache-2.0` | `3d3067d79b975e8844ca9eb072e16b31c3c1c36928edf9c6789548c524d0d954` | `LICENSE-APACHE` (A011), `LICENSE-MIT` (A005) |
-| [`indexmap`](https://crates.io/crates/indexmap/2.14.0) | `2.14.0` | `Apache-2.0 OR MIT` | `d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9` | `LICENSE-APACHE` (A011), `LICENSE-MIT` (A013) |
+| [`equivalent`](https://crates.io/crates/equivalent/1.0.2) | `1.0.2` | `Apache-2.0 OR MIT` | `877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f` | `LICENSE-APACHE` (A012), `LICENSE-MIT` (A009) |
+| [`foldhash`](https://crates.io/crates/foldhash/0.2.0) | `0.2.0` | `Zlib` | `77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb` | `LICENSE` (A013) |
+| [`hashbrown`](https://crates.io/crates/hashbrown/0.17.1) | `0.17.1` | `MIT OR Apache-2.0` | `ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a` | `LICENSE-APACHE` (A012), `LICENSE-MIT` (A017) |
+| [`heck`](https://crates.io/crates/heck/0.5.0) | `0.5.0` | `MIT OR Apache-2.0` | `2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea` | `LICENSE-APACHE` (A012), `LICENSE-MIT` (A010) |
+| [`id-arena`](https://crates.io/crates/id-arena/2.3.0) | `2.3.0` | `MIT/Apache-2.0` | `3d3067d79b975e8844ca9eb072e16b31c3c1c36928edf9c6789548c524d0d954` | `LICENSE-APACHE` (A012), `LICENSE-MIT` (A005) |
+| [`indexmap`](https://crates.io/crates/indexmap/2.14.0) | `2.14.0` | `Apache-2.0 OR MIT` | `d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9` | `LICENSE-APACHE` (A012), `LICENSE-MIT` (A015) |
 | [`itoa`](https://crates.io/crates/itoa/1.0.18) | `1.0.18` | `MIT OR Apache-2.0` | `8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682` | `LICENSE-APACHE` (A006), `LICENSE-MIT` (A003) |
-| [`leb128fmt`](https://crates.io/crates/leb128fmt/0.1.0) | `0.1.0` | `MIT OR Apache-2.0` | `09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2` | `LICENSE-APACHE` (A011), `LICENSE-MIT` (A003) |
-| [`log`](https://crates.io/crates/log/0.4.34) | `0.4.34` | `MIT OR Apache-2.0` | `f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6` | `LICENSE-APACHE` (A011), `LICENSE-MIT` (A007) |
-| [`memchr`](https://crates.io/crates/memchr/2.8.3) | `2.8.3` | `Unlicense OR MIT` | `cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98` | `COPYING` (A001), `LICENSE-MIT` (A002), `UNLICENSE` (A010) |
+| [`leb128fmt`](https://crates.io/crates/leb128fmt/0.1.0) | `0.1.0` | `MIT OR Apache-2.0` | `09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2` | `LICENSE-APACHE` (A012), `LICENSE-MIT` (A003) |
+| [`log`](https://crates.io/crates/log/0.4.34) | `0.4.34` | `MIT OR Apache-2.0` | `f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6` | `LICENSE-APACHE` (A012), `LICENSE-MIT` (A007) |
+| [`memchr`](https://crates.io/crates/memchr/2.8.3) | `2.8.3` | `Unlicense OR MIT` | `cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98` | `COPYING` (A001), `LICENSE-MIT` (A002), `UNLICENSE` (A011) |
 | [`prettyplease`](https://crates.io/crates/prettyplease/0.3.0) | `0.3.0` | `MIT OR Apache-2.0` | `2bfe0f4c752e450fc2faf62654f1c134747922825d5b04ca717b8874f41a40c0` | `LICENSE-APACHE` (A006), `LICENSE-MIT` (A003) |
 | [`proc-macro2`](https://crates.io/crates/proc-macro2/1.0.107) | `1.0.107` | `MIT OR Apache-2.0` | `985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9` | `LICENSE-APACHE` (A006), `LICENSE-MIT` (A003) |
 | [`quote`](https://crates.io/crates/quote/1.0.47) | `1.0.47` | `MIT OR Apache-2.0` | `1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001` | `LICENSE-APACHE` (A006), `LICENSE-MIT` (A003) |
@@ -35,16 +40,16 @@ The provider itself is licensed under MIT OR Apache-2.0. Its complete terms are 
 | [`syn`](https://crates.io/crates/syn/3.0.5) | `3.0.5` | `MIT OR Apache-2.0` | `12df2e0110f65b775f769bb17ef989067a1d931b2eb822bd4346631eeada89f9` | `LICENSE-APACHE` (A006), `LICENSE-MIT` (A003) |
 | [`thiserror`](https://crates.io/crates/thiserror/2.0.20) | `2.0.20` | `MIT OR Apache-2.0` | `ec86235f5fcc2a73650310756d2ac5b138a5780bbbdfae3eeccec992c435ba4f` | `LICENSE-APACHE` (A006), `LICENSE-MIT` (A003) |
 | [`thiserror-impl`](https://crates.io/crates/thiserror-impl/2.0.20) | `2.0.20` | `MIT OR Apache-2.0` | `bc04cd3e1236dd4a98afca4569f2deb3f120e5422a4023be2cb683f8486292af` | `LICENSE-APACHE` (A006), `LICENSE-MIT` (A003) |
-| [`unicode-ident`](https://crates.io/crates/unicode-ident/1.0.24) | `1.0.24` | `(MIT OR Apache-2.0) AND Unicode-3.0` | `e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75` | `LICENSE-APACHE` (A006), `LICENSE-MIT` (A003), `LICENSE-UNICODE` (A014) |
-| [`wasm-encoder`](https://crates.io/crates/wasm-encoder/0.259.0) | `0.259.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `b1d0246511d901aacf25d2dc9111f0054947de5e093fe662099e709ff7530dc3` | `LICENSE-APACHE` (A011), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
-| [`wasm-metadata`](https://crates.io/crates/wasm-metadata/0.259.0) | `0.259.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `4e7bf119eb01f4a246864c10bd87c8f26c566350abb25aa4d5273c415bbab338` | `LICENSE-APACHE` (A011), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
-| [`wasmparser`](https://crates.io/crates/wasmparser/0.259.0) | `0.259.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `0f7c12eac7bb587801590f6a67ff0bc84d0748513864b71108e4b311cc3df694` | `LICENSE-APACHE` (A011), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
-| [`wit-bindgen`](https://crates.io/crates/wit-bindgen/0.62.0) | `0.62.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `53cb4b5556c3a791e86838ea287782bdafa704d55b0e68b5b81a3a16b9ea5f4b` | `LICENSE-APACHE` (A011), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
-| [`wit-bindgen-core`](https://crates.io/crates/wit-bindgen-core/0.62.0) | `0.62.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `72ad22a37ecbc0e1fdca34d2b670ba41368cb0920735643e00fdf39a16ee5431` | `LICENSE-APACHE` (A011), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
-| [`wit-bindgen-rust`](https://crates.io/crates/wit-bindgen-rust/0.62.0) | `0.62.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `84ba5213d4332c260a0d4e69e34b0f7e4b85ddae10b6ebfbac00d9c185ba628a` | `LICENSE-APACHE` (A011), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
-| [`wit-bindgen-rust-macro`](https://crates.io/crates/wit-bindgen-rust-macro/0.62.0) | `0.62.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `8f19d63da8e478a370ef8192d90ccb517965b7747d6b46cd2d831dd0ef4d2541` | `LICENSE-APACHE` (A011), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
-| [`wit-component`](https://crates.io/crates/wit-component/0.259.0) | `0.259.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `092f783dee3253265fcde131475055f8c275ac0176a9c0396db1dc7b5544bfb4` | `LICENSE-APACHE` (A011), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
-| [`wit-parser`](https://crates.io/crates/wit-parser/0.259.0) | `0.259.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `6390f4f02493ce678d509c859cf1698e38929fb75c8012a6ee2f7d6b6cb66cd7` | `LICENSE-APACHE` (A011), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
+| [`unicode-ident`](https://crates.io/crates/unicode-ident/1.0.24) | `1.0.24` | `(MIT OR Apache-2.0) AND Unicode-3.0` | `e6e4313cd5fcd3dad5cafa179702e2b244f760991f45397d14d4ebf38247da75` | `LICENSE-APACHE` (A006), `LICENSE-MIT` (A003), `LICENSE-UNICODE` (A016) |
+| [`wasm-encoder`](https://crates.io/crates/wasm-encoder/0.259.0) | `0.259.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `b1d0246511d901aacf25d2dc9111f0054947de5e093fe662099e709ff7530dc3` | `LICENSE-APACHE` (A012), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
+| [`wasm-metadata`](https://crates.io/crates/wasm-metadata/0.259.0) | `0.259.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `4e7bf119eb01f4a246864c10bd87c8f26c566350abb25aa4d5273c415bbab338` | `LICENSE-APACHE` (A012), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
+| [`wasmparser`](https://crates.io/crates/wasmparser/0.259.0) | `0.259.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `0f7c12eac7bb587801590f6a67ff0bc84d0748513864b71108e4b311cc3df694` | `LICENSE-APACHE` (A012), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
+| [`wit-bindgen`](https://crates.io/crates/wit-bindgen/0.62.0) | `0.62.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `53cb4b5556c3a791e86838ea287782bdafa704d55b0e68b5b81a3a16b9ea5f4b` | `LICENSE-APACHE` (A012), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
+| [`wit-bindgen-core`](https://crates.io/crates/wit-bindgen-core/0.62.0) | `0.62.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `72ad22a37ecbc0e1fdca34d2b670ba41368cb0920735643e00fdf39a16ee5431` | `LICENSE-APACHE` (A012), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
+| [`wit-bindgen-rust`](https://crates.io/crates/wit-bindgen-rust/0.62.0) | `0.62.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `84ba5213d4332c260a0d4e69e34b0f7e4b85ddae10b6ebfbac00d9c185ba628a` | `LICENSE-APACHE` (A012), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
+| [`wit-bindgen-rust-macro`](https://crates.io/crates/wit-bindgen-rust-macro/0.62.0) | `0.62.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `8f19d63da8e478a370ef8192d90ccb517965b7747d6b46cd2d831dd0ef4d2541` | `LICENSE-APACHE` (A012), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
+| [`wit-component`](https://crates.io/crates/wit-component/0.259.0) | `0.259.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `092f783dee3253265fcde131475055f8c275ac0176a9c0396db1dc7b5544bfb4` | `LICENSE-APACHE` (A012), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
+| [`wit-parser`](https://crates.io/crates/wit-parser/0.259.0) | `0.259.0` | `Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT` | `6390f4f02493ce678d509c859cf1698e38929fb75c8012a6ee2f7d6b6cb66cd7` | `LICENSE-APACHE` (A012), `LICENSE-Apache-2.0_WITH_LLVM-exception` (A004), `LICENSE-MIT` (A003) |
 | [`zmij`](https://crates.io/crates/zmij/1.0.23) | `1.0.23` | `MIT` | `29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b` | `LICENSE-MIT` (A003) |
 
 ## Provider license terms
@@ -815,7 +820,31 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### A008 — SHA-256 `7365cc8878a1d7ce155a58c4ca09c3d7a6be413efa5334a80ea842912b669349`; supplied by equivalent 1.0.2/LICENSE-MIT
+### A008 — SHA-256 `6efb0476a1cc085077ed49357026d8c173bf33017278ef440f222fb9cbcb66e6`; supplied by anstyle 1.0.14/LICENSE-MIT; clap 4.6.6/LICENSE-MIT; clap_builder 4.6.6/LICENSE-MIT; clap_derive 4.6.4/LICENSE-MIT; clap_lex 1.1.0/LICENSE-MIT
+
+```text
+Copyright (c) Individual contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+### A009 — SHA-256 `7365cc8878a1d7ce155a58c4ca09c3d7a6be413efa5334a80ea842912b669349`; supplied by equivalent 1.0.2/LICENSE-MIT
 
 ```text
 Copyright (c) 2016--2023
@@ -845,7 +874,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### A009 — SHA-256 `7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0`; supplied by heck 0.5.0/LICENSE-MIT
+### A010 — SHA-256 `7b63ecd5f1902af1b63729947373683c32745c16a10e8e6292e2e2dcd7e90ae0`; supplied by heck 0.5.0/LICENSE-MIT
 
 ```text
 Copyright (c) 2015 The Rust Project Developers
@@ -875,7 +904,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### A010 — SHA-256 `7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c`; supplied by memchr 2.8.3/UNLICENSE
+### A011 — SHA-256 `7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c`; supplied by memchr 2.8.3/UNLICENSE
 
 ```text
 This is free and unencumbered software released into the public domain.
@@ -904,7 +933,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 For more information, please refer to <http://unlicense.org/>
 ```
 
-### A011 — SHA-256 `a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2`; supplied by bitflags 2.13.1/LICENSE-APACHE; equivalent 1.0.2/LICENSE-APACHE; hashbrown 0.17.1/LICENSE-APACHE; heck 0.5.0/LICENSE-APACHE; id-arena 2.3.0/LICENSE-APACHE; indexmap 2.14.0/LICENSE-APACHE; leb128fmt 0.1.0/LICENSE-APACHE; log 0.4.34/LICENSE-APACHE; wasm-encoder 0.259.0/LICENSE-APACHE; wasm-metadata 0.259.0/LICENSE-APACHE; wasmparser 0.259.0/LICENSE-APACHE; wit-bindgen 0.62.0/LICENSE-APACHE; wit-bindgen-core 0.62.0/LICENSE-APACHE; wit-bindgen-rust 0.62.0/LICENSE-APACHE; wit-bindgen-rust-macro 0.62.0/LICENSE-APACHE; wit-component 0.259.0/LICENSE-APACHE; wit-parser 0.259.0/LICENSE-APACHE
+### A012 — SHA-256 `a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2`; supplied by bitflags 2.13.1/LICENSE-APACHE; equivalent 1.0.2/LICENSE-APACHE; hashbrown 0.17.1/LICENSE-APACHE; heck 0.5.0/LICENSE-APACHE; id-arena 2.3.0/LICENSE-APACHE; indexmap 2.14.0/LICENSE-APACHE; leb128fmt 0.1.0/LICENSE-APACHE; log 0.4.34/LICENSE-APACHE; wasm-encoder 0.259.0/LICENSE-APACHE; wasm-metadata 0.259.0/LICENSE-APACHE; wasmparser 0.259.0/LICENSE-APACHE; wit-bindgen 0.62.0/LICENSE-APACHE; wit-bindgen-core 0.62.0/LICENSE-APACHE; wit-bindgen-rust 0.62.0/LICENSE-APACHE; wit-bindgen-rust-macro 0.62.0/LICENSE-APACHE; wit-component 0.259.0/LICENSE-APACHE; wit-parser 0.259.0/LICENSE-APACHE
 
 ```text
                               Apache License
@@ -1110,7 +1139,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ```
 
-### A012 — SHA-256 `b1181a40b2a7b25cf66fd01481713bc1005df082c53ef73e851e55071b102744`; supplied by foldhash 0.2.0/LICENSE
+### A013 — SHA-256 `b1181a40b2a7b25cf66fd01481713bc1005df082c53ef73e851e55071b102744`; supplied by foldhash 0.2.0/LICENSE
 
 ```text
 Copyright (c) 2024 Orson Peters
@@ -1134,7 +1163,214 @@ the following restrictions:
 3. This notice may not be removed or altered from any source distribution.
 ```
 
-### A013 — SHA-256 `ecc269ef87fd38a1d98e30bfac9ba964a9dbd9315c3770fed98d4d7cb5882055`; supplied by indexmap 2.14.0/LICENSE-MIT
+### A014 — SHA-256 `c6596eb7be8581c18be736c846fb9173b69eccf6ef94c5135893ec56bd92ba08`; supplied by anstyle 1.0.14/LICENSE-APACHE; clap 4.6.6/LICENSE-APACHE; clap_builder 4.6.6/LICENSE-APACHE; clap_derive 4.6.4/LICENSE-APACHE; clap_lex 1.1.0/LICENSE-APACHE
+
+```text
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "{}"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright {yyyy} {name of copyright owner}
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+```
+
+### A015 — SHA-256 `ecc269ef87fd38a1d98e30bfac9ba964a9dbd9315c3770fed98d4d7cb5882055`; supplied by indexmap 2.14.0/LICENSE-MIT
 
 ```text
 Copyright (c) 2016--2017
@@ -1164,7 +1400,7 @@ IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 ```
 
-### A014 — SHA-256 `f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1`; supplied by unicode-ident 1.0.24/LICENSE-UNICODE
+### A016 — SHA-256 `f7db81051789b729fea528a63ec4c938fdcb93d9d61d97dc8cc2e9df6d47f2a1`; supplied by unicode-ident 1.0.24/LICENSE-UNICODE
 
 ```text
 UNICODE LICENSE V3
@@ -1208,7 +1444,7 @@ dealings in these Data Files or Software without prior written
 authorization of the copyright holder.
 ```
 
-### A015 — SHA-256 `ff8f68cb076caf8cefe7a6430d4ac086ce6af2ca8ce2c4e5a2004d4552ef52a2`; supplied by hashbrown 0.17.1/LICENSE-MIT
+### A017 — SHA-256 `ff8f68cb076caf8cefe7a6430d4ac086ce6af2ca8ce2c4e5a2004d4552ef52a2`; supplied by hashbrown 0.17.1/LICENSE-MIT
 
 ```text
 Copyright (c) 2016 Amanieu d'Antras

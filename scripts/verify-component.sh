@@ -50,7 +50,7 @@ wit = json.loads(pathlib.Path(sys.argv[1]).read_text())
 if len(wit["worlds"]) != 1:
     raise SystemExit("expected exactly one decoded component world")
 world = wit["worlds"][0]
-if set(world["exports"]) != {"describe", "invoke"}:
+if set(world["exports"]) != {"describe", "invoke", "run-command"}:
     raise SystemExit(f"unexpected component exports: {sorted(world['exports'])}")
 if len(world["imports"]) != 1 or len(wit["interfaces"]) != 1:
     raise SystemExit("expected exactly one component interface import")
@@ -84,10 +84,14 @@ if grep -Eqi 'wasi:|wasix|wasi_snapshot|wasm-bindgen|js-sys' "$wit_text" "$core_
   echo "error: ambient interface/runtime found in component" >&2
   exit 1
 fi
+if grep -Fq 'resolve-command' "$wit_text"; then
+  echo "error: component exports the legacy resolve-command alongside run-command" >&2
+  exit 1
+fi
 if ! grep -q 'custom "dekopon.third-party-notices"' "$component_sections"; then
   echo "error: notice custom section was not preserved by componentization" >&2
   exit 1
 fi
 
-printf 'verified component: %s bytes; 2 exports; exactly dekopon:http/client@1.0.0; no WASI\n' \
+printf 'verified component: %s bytes; 3 exports; exactly dekopon:http/client@1.0.0; no WASI\n' \
   "$component_bytes"
