@@ -16,6 +16,7 @@ use dekopon_capability::{
     broker::AuthorizationGate,
 };
 use dekopon_core::{Actor, AgentId, CapabilityId, InvocationId, PrincipalId, ProviderId, TraceId};
+use dekopon_provider_sdk::CommandRunOutcome;
 use serde_json::{Value, json};
 
 /// A W3C trace identifier: 16 non-zero bytes rendered as 32 lowercase hex digits.
@@ -136,11 +137,11 @@ fn response(status: &str, body: Value) -> Vec<u8> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
-async fn broker_loads_exact_separated_manifest_with_no_command_words() {
+async fn broker_loads_exact_separated_manifest_with_the_placeholder_command_word() {
     let registry = BrokerProviderRegistry::load([component()], BrokerHostLimits::default())
         .await
         .expect("broker linker loads HTTP provider");
-    assert!(registry.command_words().is_empty());
+    assert_eq!(registry.command_words(), ["placeholder"]);
     let manifest = registry.manifests().next().expect("one manifest");
     assert_eq!(manifest.id.as_str(), "jsonplaceholder");
     assert_eq!(manifest.capabilities.len(), 2);
@@ -151,6 +152,66 @@ async fn broker_loads_exact_separated_manifest_with_no_command_words() {
     assert_eq!(
         manifest.capabilities[1].id.as_str(),
         "jsonplaceholder.posts.create"
+    );
+}
+
+/// The shipped component's `run-command` export, through the broker host: a well-formed argv is a
+/// proposal and nothing more, and a usage error is rendered text that authorizes nothing.
+#[tokio::test(flavor = "multi_thread")]
+async fn placeholder_word_proposes_or_renders_through_the_run_command_export() {
+    let registry = BrokerProviderRegistry::load([component()], BrokerHostLimits::default())
+        .await
+        .expect("broker linker loads HTTP provider");
+    let argv = |words: &[&str]| {
+        words
+            .iter()
+            .map(|word| (*word).to_owned())
+            .collect::<Vec<_>>()
+    };
+
+    let outcome = registry
+        .run_command(
+            "placeholder",
+            &argv(&[
+                "posts",
+                "create",
+                "--user-id",
+                "3",
+                "--title",
+                "t",
+                "--body",
+                "-",
+            ]),
+            Some("piped body"),
+        )
+        .await
+        .expect("run-command answers");
+    let CommandRunOutcome::Proposed { capability, input } = outcome else {
+        panic!("expected a proposal, got {outcome:?}");
+    };
+    assert_eq!(capability.as_str(), "jsonplaceholder.posts.create");
+    assert_eq!(
+        input,
+        json!({"userId": 3, "title": "t", "body": "piped body"})
+    );
+
+    let outcome = registry
+        .run_command("placeholder", &argv(&["posts", "get"]), None)
+        .await
+        .expect("run-command answers");
+    let CommandRunOutcome::Rendered {
+        stdout,
+        stderr,
+        status,
+    } = outcome
+    else {
+        panic!("expected rendered usage, got {outcome:?}");
+    };
+    assert_eq!(status, 2);
+    assert!(stdout.is_empty(), "{stdout}");
+    assert!(
+        stderr.contains("Usage: placeholder posts get --post-id <ID>"),
+        "{stderr}"
     );
 }
 

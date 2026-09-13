@@ -13,6 +13,56 @@ The guest has no transport, credentials, WASI, filesystem, sockets, environment,
 
 GET sends `/posts/{postId}` with `Accept: application/json`. Create sends `/posts` with `Accept` and `Content-Type: application/json` and a body containing only `userId`, `title`, and `body`. Input and response byte limits, status mappings, echoed create fields, and transport-error redaction are enforced in the guest.
 
+## The `placeholder` command word
+
+```
+placeholder posts get --post-id 7
+placeholder posts create --user-id 1 --title "hello" --body "first post"
+placeholder posts create --user-id 1 --title "hello" --body -   # reads the value piped into the word
+placeholder --help                                               # rendered by the guest, at exit 0
+```
+
+The tree is the capability ID with the provider prefix swapped for the word: `placeholder posts get` proposes `jsonplaceholder.posts.get`. Each flag is the kebab-case of the wire field it fills, so `--post-id` is `postId`. `--help`, `--version`, and every usage error are rendered inside the component and authorize nothing. A well-formed argv becomes a *proposal* carrying exactly the input a direct invocation sends, and it travels the same constraint-set lookup and Cedar. ID ranges, byte limits, and the endpoint allowlist are checked once, by the same input parser, so `--post-id 0` parses and is then refused as `invalid-input` before any HTTP.
+
+`--endpoint` is on both verbs because it is a wire field; it exists for loopback tests, and production constraint sets allow only `jsonplaceholder.typicode.com` whatever the flag says.
+
+```console
+$ placeholder --help
+Read and create JSONPlaceholder posts
+
+Usage: placeholder <COMMAND>
+
+Commands:
+  posts  Read and create posts
+  help   Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+
+$ placeholder posts get --help
+Get one post by ID
+
+Usage: placeholder posts get [OPTIONS] --post-id <ID>
+
+Options:
+      --post-id <ID>    The post to read, 1 to 100
+      --endpoint <URL>  Production JSONPlaceholder HTTPS (the default) or a literal loopback http://IP:PORT
+  -h, --help            Print help
+
+$ placeholder posts create --help
+Create one post; JSONPlaceholder echoes it back and does not persist it
+
+Usage: placeholder posts create [OPTIONS] --user-id <ID> --title <TEXT> --body <TEXT>
+
+Options:
+      --user-id <ID>    The author, 1 to 10
+      --title <TEXT>    The title, up to 256 UTF-8 bytes
+      --body <TEXT>     The body, up to 4096 UTF-8 bytes. `-` reads the piped value
+      --endpoint <URL>  Production JSONPlaceholder HTTPS (the default) or a literal loopback http://IP:PORT
+  -h, --help            Print help
+```
+
 ## Broker configuration
 
 Read and write require independent constraint and Cedar entries; read authority never implies write authority.
@@ -60,7 +110,7 @@ The checked-in WIT is caller-owned and byte-compared to the exact `dekopon-provi
 ./scripts/verify-component.sh
 ```
 
-The ignored output is `jsonplaceholder-provider.wasm` plus its `.sha256`. The decoded component exports the provider surface, imports exactly `dekopon:http/client@1.0.0`, and imports no WASI. An empty Wasmtime linker intentionally rejects it; execution requires the broker.
+The ignored output is `jsonplaceholder-provider.wasm` plus its `.sha256`. The decoded component exports exactly `describe`, `invoke`, and `run-command` (the `dekopon:provider/provider-cli@0.3.0` world), imports exactly `dekopon:http/client@1.0.0`, and imports no WASI. An empty Wasmtime linker intentionally rejects it; execution requires the broker.
 
 ## Acceptance
 

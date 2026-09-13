@@ -120,10 +120,10 @@ jobs:
               if line and not line.startswith("#"):
                   name, version, _source = line.split(" ", 2)
                   inventory.add((name, version))
-          if tree != inventory or len(tree) != 38:
+          if tree != inventory or len(tree) != 43:
               raise SystemExit("isolated inventory differs from cargo tree normal/build graph")
           PY
-          test "$(grep -Evc '^#|^$' security/wasm-dependencies.txt)" -eq 38
+          test "$(grep -Evc '^#|^$' security/wasm-dependencies.txt)" -eq 43
           grep -Fq 'Unicode-3.0' THIRD_PARTY_NOTICES.md
           grep -Fq Zlib THIRD_PARTY_NOTICES.md
           grep -Fq 'LLVM-exception' THIRD_PARTY_NOTICES.md
@@ -153,7 +153,7 @@ jobs:
             .bomFormat == "CycloneDX" and
             .specVersion == "1.5" and
             .metadata.component.name == "dekopon-jsonplaceholder-provider" and
-            (.components | length) == 38
+            (.components | length) == 43
           ' dist/jsonplaceholder-provider.cdx.json >/dev/null
 
       - name: Rebuild two independent clean git archives
@@ -221,7 +221,7 @@ jobs:
           jq -e '
             .bomFormat == "CycloneDX" and
             .specVersion == "1.5" and
-            (.components | length) == 38
+            (.components | length) == 43
           ' sbom/jsonplaceholder-provider.cdx.json >/dev/null
       - name: Attest build provenance
         uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
@@ -799,7 +799,7 @@ jobs:
           jq -e '
             (.worlds | length) == 1 and
             (.interfaces | length) == 1 and
-            (.worlds[0].exports | keys | sort) == ["describe", "invoke"] and
+            (.worlds[0].exports | keys | sort) == ["describe", "invoke", "run-command"] and
             (.worlds[0].imports | length) == 1 and
             .packages[.interfaces[0].package].name == "dekopon:http@1.0.0" and
             .interfaces[0].name == "client" and
@@ -970,7 +970,7 @@ jobs:
           jq -e '
             (.worlds | length) == 1 and
             (.interfaces | length) == 1 and
-            (.worlds[0].exports | keys | sort) == ["describe", "invoke"] and
+            (.worlds[0].exports | keys | sort) == ["describe", "invoke", "run-command"] and
             (.worlds[0].imports | length) == 1 and
             .packages[.interfaces[0].package].name == "dekopon:http@1.0.0" and
             .interfaces[0].name == "client" and
