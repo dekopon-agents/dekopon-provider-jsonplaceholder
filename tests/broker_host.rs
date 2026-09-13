@@ -186,7 +186,10 @@ async fn placeholder_word_proposes_or_renders_through_the_run_command_export() {
         )
         .await
         .expect("run-command answers");
-    let CommandRunOutcome::Proposed { capability, input } = outcome else {
+    let CommandRunOutcome::Proposed {
+        capability, input, ..
+    } = outcome
+    else {
         panic!("expected a proposal, got {outcome:?}");
     };
     assert_eq!(capability.as_str(), "jsonplaceholder.posts.create");

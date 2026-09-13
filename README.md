@@ -103,7 +103,7 @@ The provider needs no secrets. Paths, queries, headers, bodies, transport errors
 
 ## Build and inspect
 
-The checked-in WIT is caller-owned and byte-compared to the exact `dekopon-provider-sdk = 0.13.0` and `dekopon-provider-http = 0.13.0` crate contracts. The deterministic build requires Rust 1.98.1 (`rustc 1.98.1 (48a229cea 2026-09-01)`) and `wasm-tools 1.259.0`.
+The checked-in WIT is caller-owned and byte-compared to the exact `dekopon-provider-sdk = 0.15.0` and `dekopon-provider-http = 0.15.0` crate contracts. The deterministic build requires Rust 1.98.1 (`rustc 1.98.1 (48a229cea 2026-09-01)`) and `wasm-tools 1.259.0`.
 
 ```console
 ./build.sh

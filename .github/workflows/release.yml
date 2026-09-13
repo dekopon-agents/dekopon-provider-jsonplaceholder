@@ -292,7 +292,7 @@ jobs:
           marker="provider-jsonplaceholder-run:$GITHUB_RUN_ID:$GITHUB_RUN_ATTEMPT"
           printf '%s\n\n%s\n' \
             "$marker" \
-            'Typed JSONPlaceholder GET and create provider for Dekopon 0.13.0. posts.create is an external write; JSONPlaceholder returns a synthetic record and does not persist it. Verify the component with the attached checksum and public GitHub attestations.' \
+            'Typed JSONPlaceholder GET and create provider for Dekopon 0.15.0. posts.create is an external write; JSONPlaceholder returns a synthetic record and does not persist it. Verify the component with the attached checksum and public GitHub attestations.' \
             >"$RUNNER_TEMP/release-notes.md"
           gh release create "$GITHUB_REF_NAME" \
             --verify-tag \
