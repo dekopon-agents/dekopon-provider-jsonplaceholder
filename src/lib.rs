@@ -40,13 +40,6 @@ mod bindings {
     });
 }
 
-/// The exact dependency notices are embedded in the shipped component bytes.
-#[cfg(target_arch = "wasm32")]
-#[used]
-#[unsafe(link_section = "dekopon.third-party-notices")]
-static THIRD_PARTY_NOTICES: [u8; include_bytes!("../THIRD_PARTY_NOTICES.md").len()] =
-    *include_bytes!("../THIRD_PARTY_NOTICES.md");
-
 struct JsonPlaceholder;
 
 impl Provider for JsonPlaceholder {

@@ -23,7 +23,10 @@ use serde_json::{Value, json};
 const TRACE_ID: &str = "4bf92f3577b34da6a3ce929d0e0e4736";
 
 fn component() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("jsonplaceholder-provider.wasm")
+    PathBuf::from(
+        std::env::var_os("DEKOPON_PROVIDER_COMPONENT")
+            .expect("DEKOPON_PROVIDER_COMPONENT must point at the built component"),
+    )
 }
 
 fn authorized(
