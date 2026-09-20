@@ -10,7 +10,9 @@ use std::{
     time::Duration,
 };
 
-use dekopon_broker_host::{BrokerHostError, BrokerHostLimits, BrokerProviderRegistry};
+use dekopon_broker_host::{
+    BrokerHostError, BrokerHostLimits, BrokerProviderRegistry, asset::AssetInputs,
+};
 use dekopon_capability::{
     AuthorizedInvocation, ExecutionConstraints, HttpConstraints, ProposedInvocation,
     broker::AuthorizationGate,
@@ -77,6 +79,7 @@ fn profile(authority: &str, method: &str) -> ExecutionConstraints {
             // Plaintext is test-only and independently restricted to the exact loopback socket.
             allow_plaintext_loopback: true,
         }),
+        asset: None,
         storage: None,
         secret_use: None,
     }
@@ -239,6 +242,7 @@ async fn exact_get_grant_executes_one_bounded_request_and_records_authority() {
                 profile(&authority, "GET"),
             ),
             None,
+            AssetInputs::default(),
         )
         .await
         .expect("exact read grant executes");
@@ -280,6 +284,7 @@ async fn create_requires_an_independent_post_grant_and_sends_exact_json() {
                 profile(&authority, "GET"),
             ),
             None,
+            AssetInputs::default(),
         )
         .await
         .expect_err("read grant never implies write");
@@ -304,6 +309,7 @@ async fn create_requires_an_independent_post_grant_and_sends_exact_json() {
                 profile(&authority, "POST"),
             ),
             None,
+            AssetInputs::default(),
         )
         .await
         .expect("write grant executes");
@@ -345,6 +351,7 @@ async fn post_effect_response_failure_is_reported_as_potentially_executed() {
                 profile(&authority, "POST"),
             ),
             None,
+            AssetInputs::default(),
         )
         .await
         .expect_err("invalid post-effect response fails");
@@ -395,6 +402,7 @@ async fn bounded_response_runs_under_committed_fuel_and_memory_ceilings() {
                 profile(&authority, "GET"),
             ),
             None,
+            AssetInputs::default(),
         )
         .await
         .expect("maximum valid post fits fixed resources");
@@ -422,6 +430,7 @@ async fn wrong_authority_and_plaintext_policy_fail_before_network() {
                     constraints,
                 ),
                 None,
+                AssetInputs::default(),
             )
             .await
             .expect_err("grant mismatch fails closed");

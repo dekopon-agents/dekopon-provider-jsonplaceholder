@@ -1,6 +1,6 @@
 # JSONPlaceholder provider for Dekopon
 
-A narrow WebAssembly component that reads and creates bounded JSONPlaceholder posts through the broker-owned `dekopon:http/client@1.0.0` interface.
+A narrow WebAssembly component that reads and creates bounded JSONPlaceholder posts through the broker-owned `dekopon:http/client@1.1.0` interface.
 
 ## Authority and behavior
 
@@ -103,13 +103,13 @@ The provider needs no secrets. Paths, queries, headers, bodies, transport errors
 
 ## Build and inspect
 
-The checked-in WIT is caller-owned and byte-compared to the exact `dekopon-provider-sdk = 0.15.0` and `dekopon-provider-http = 0.15.0` crate contracts. The deterministic build requires Rust 1.98.1 (`rustc 1.98.1 (48a229cea 2026-09-01)`) and `wasm-tools 1.259.0`.
+The checked-in WIT is caller-owned and byte-compared to the exact `dekopon-provider-sdk = 0.18.0` and `dekopon-provider-http = 0.18.0` crate contracts. The deterministic build requires Rust 1.98.1 (`rustc 1.98.1 (48a229cea 2026-09-01)`) and `wasm-tools 1.259.0`.
 
 ```console
 ../provider-workflows/build.sh
 ```
 
-The output is `jsonplaceholder-provider.wasm` plus its `.sha256`. The decoded component exports exactly `describe`, `invoke`, and `run-command` (the `dekopon:provider/provider-cli@0.3.0` world), imports exactly `dekopon:http/client@1.0.0`, and imports no WASI. An empty Wasmtime linker intentionally rejects it; execution requires the broker.
+The output is `jsonplaceholder-provider.wasm` plus its `.sha256`. The decoded component exports exactly `describe`, `invoke`, and `run-command` (the `dekopon:provider/provider-cli@0.3.0` world), imports exactly `dekopon:http/client@1.1.0`, and imports no WASI. An empty Wasmtime linker intentionally rejects it; execution requires the broker.
 
 ## Acceptance
 
