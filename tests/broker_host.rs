@@ -4,12 +4,14 @@
 use std::{
     io::{Read, Write},
     net::TcpListener,
+    os::{fd::OwnedFd, unix::net::UnixStream},
     path::PathBuf,
     sync::mpsc,
     thread,
     time::Duration,
 };
 
+use dekopon_broker_host::Streams;
 use dekopon_broker_host::{
     BrokerHostError, BrokerHostLimits, BrokerProviderRegistry, asset::AssetInputs,
 };
@@ -66,10 +68,23 @@ fn authorized(
         .expect("bounded fixture authorization")
 }
 
+fn streams() -> (AssetInputs, UnixStream) {
+    let (stdout, peer) = UnixStream::pair().expect("stdout pipe");
+    (
+        AssetInputs {
+            streams: Some(Streams {
+                stdin: None,
+                stdout: OwnedFd::from(stdout),
+            }),
+            ..AssetInputs::default()
+        },
+        peer,
+    )
+}
+
 fn profile(authority: &str, method: &str) -> ExecutionConstraints {
     ExecutionConstraints {
         timeout_ms: 5_000,
-        max_output_bytes: 65_536,
         http: Some(HttpConstraints {
             allowed_hosts: vec![authority.to_owned()],
             allowed_methods: vec![method.to_owned()],
@@ -78,6 +93,7 @@ fn profile(authority: &str, method: &str) -> ExecutionConstraints {
             max_response_bytes: 65_536,
             // Plaintext is test-only and independently restricted to the exact loopback socket.
             allow_plaintext_loopback: true,
+            propagate_trace: false,
         }),
         asset: None,
         storage: None,
@@ -188,7 +204,7 @@ async fn placeholder_word_proposes_or_renders_through_the_run_command_export() {
                 "--body",
                 "-",
             ]),
-            Some("piped body"),
+            true,
         )
         .await
         .expect("run-command answers");
@@ -201,11 +217,11 @@ async fn placeholder_word_proposes_or_renders_through_the_run_command_export() {
     assert_eq!(capability.as_str(), "jsonplaceholder.posts.create");
     assert_eq!(
         input,
-        json!({"userId": 3, "title": "t", "body": "piped body"})
+        json!({"userId": 3, "title": "t", "body": "-", "stdinPiped": true})
     );
 
     let outcome = registry
-        .run_command("placeholder", &argv(&["posts", "get"]), None)
+        .run_command("placeholder", &argv(&["posts", "get"]), false)
         .await
         .expect("run-command answers");
     let CommandRunOutcome::Rendered {
@@ -233,6 +249,7 @@ async fn exact_get_grant_executes_one_bounded_request_and_records_authority() {
     let registry = BrokerProviderRegistry::load([component()], BrokerHostLimits::default())
         .await
         .expect("broker loads component");
+    let (assets, mut stdout) = streams();
     let output = registry
         .invoke(
             authorized(
@@ -242,11 +259,18 @@ async fn exact_get_grant_executes_one_bounded_request_and_records_authority() {
                 profile(&authority, "GET"),
             ),
             None,
-            AssetInputs::default(),
+            assets,
         )
         .await
         .expect("exact read grant executes");
-    assert_eq!(output.output["post"]["id"], 7);
+    let mut line = String::new();
+    stdout.read_to_string(&mut line).expect("read JSON stdout");
+    assert_eq!(
+        serde_json::from_str::<Value>(&line).unwrap()["post"]["id"],
+        7
+    );
+    assert!(line.ends_with('\n'));
+    assert_eq!(output.capability.as_str(), "jsonplaceholder.posts.get");
     assert_eq!(output.http_calls.len(), 1);
     assert_eq!(output.http_calls[0].authority, authority);
     assert_eq!(output.http_calls[0].method, "GET");
@@ -297,6 +321,7 @@ async fn create_requires_an_independent_post_grant_and_sends_exact_json() {
     ));
     assert!(denied.http_calls.is_empty());
 
+    let (assets, mut stdout) = streams();
     let output = registry
         .invoke(
             authorized(
@@ -309,11 +334,17 @@ async fn create_requires_an_independent_post_grant_and_sends_exact_json() {
                 profile(&authority, "POST"),
             ),
             None,
-            AssetInputs::default(),
+            assets,
         )
         .await
         .expect("write grant executes");
-    assert_eq!(output.output["post"]["id"], 101);
+    let mut line = String::new();
+    stdout.read_to_string(&mut line).expect("read JSON stdout");
+    assert_eq!(
+        serde_json::from_str::<Value>(&line).unwrap()["post"]["id"],
+        101
+    );
+    assert_eq!(output.capability.as_str(), "jsonplaceholder.posts.create");
     assert_eq!(output.http_calls[0].method, "POST");
     assert_eq!(output.http_calls[0].authority, authority);
     let wire = received.recv().expect("request recorded");
@@ -357,7 +388,7 @@ async fn post_effect_response_failure_is_reported_as_potentially_executed() {
         .expect_err("invalid post-effect response fails");
     assert!(matches!(
         failure.error.as_ref(),
-        BrokerHostError::ProviderFailure { code, .. } if code == "invalid-response"
+        BrokerHostError::ProviderFailure { status: 1, stderr, .. } if stderr.contains("invalid post")
     ));
     assert_eq!(failure.http_calls.len(), 1);
     assert_eq!(failure.http_calls[0].status, Some(201));
@@ -393,6 +424,12 @@ async fn bounded_response_runs_under_committed_fuel_and_memory_ceilings() {
     )
     .await
     .expect("component describes under fixed resources");
+    let (assets, mut stdout) = streams();
+    let reader = thread::spawn(move || {
+        let mut line = String::new();
+        stdout.read_to_string(&mut line).expect("read JSON stdout");
+        line
+    });
     let output = registry
         .invoke(
             authorized(
@@ -402,11 +439,16 @@ async fn bounded_response_runs_under_committed_fuel_and_memory_ceilings() {
                 profile(&authority, "GET"),
             ),
             None,
-            AssetInputs::default(),
+            assets,
         )
         .await
         .expect("maximum valid post fits fixed resources");
-    assert_eq!(output.output["post"]["id"], 100);
+    let line = reader.join().expect("reader exits");
+    assert_eq!(
+        serde_json::from_str::<Value>(&line).unwrap()["post"]["id"],
+        100
+    );
+    assert_eq!(output.capability.as_str(), "jsonplaceholder.posts.get");
     assert_eq!(output.http_calls.len(), 1);
     server.join().expect("fixture exits");
 }
