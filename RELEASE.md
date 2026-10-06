@@ -3,12 +3,12 @@
 The tag workflow is the only publisher. Do not commit generated Wasm, create a release manually, push an OCI artifact by hand, or publish the private crate.
 
 1. Obtain explicit human authorization for the exact version being released.
-2. On clean current `main`, run the complete README acceptance commands, including native, component, broker, resource, dependency/license, and two-archive reproducibility gates.
+2. On clean current `main`, run the complete README acceptance commands, including native, component, broker, resource, dependency/license, decoded WIT, rustdoc, checksum, and applicable generated-artifact gates. The paused second-build reproducibility comparison is not a gate.
 3. Confirm `git status --short` is empty and the package version in `Cargo.toml` is the version being released.
 4. Prove the `v<version>` tag and every draft/published release for it are absent, and prove `ghcr.io/dekopon-agents/provider-jsonplaceholder:<version>` is absent. Earlier versions stay published; stop rather than overwrite any state.
 5. Create and push an **annotated** tag: `git tag -a v<version> -m 'v<version>' && git push origin v<version>`.
 
-The workflow rejects a lightweight tag, tag/event/SHA/main mismatch, a tag that disagrees with the crate version, an existing release, an already-published OCI tag, wrong component interface, missing attestation, wrong bytes, or extra release/OCI content. Actions alone builds the bytes and creates exactly:
+The workflow rejects a lightweight tag, tag/event/SHA/main mismatch, a tag that disagrees with the crate version, an existing release, an already-published OCI tag, wrong `provider@0.4.0` or HTTP/stdio imports, missing attestation, wrong bytes, or extra release/OCI content. Actions alone builds the bytes and creates exactly:
 
 - `jsonplaceholder-provider.wasm`
 - `jsonplaceholder-provider.wasm.sha256`

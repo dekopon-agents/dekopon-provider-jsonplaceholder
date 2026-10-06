@@ -2,19 +2,26 @@
 
 use std::net::SocketAddr;
 
-use dekopon_provider_http::{Header, HttpError, Request, Response, method};
-use dekopon_provider_sdk::{
-    CapabilityId, CommandRun, EffectKind, Provider, ProviderApiVersion, ProviderCapability,
-    ProviderError, ProviderManifest, RiskLevel,
+#[cfg(test)]
+use dekopon_provider_sdk::CapabilityId;
+use dekopon_provider_sdk::provider::{
+    self, Capability, Code, Failure, Header, Http, HttpError, Proposal, Provider, Request,
+    Response, Stdout, Usage,
 };
+use dekopon_provider_sdk::schemars::JsonSchema;
+use dekopon_provider_sdk::{EffectKind, RiskLevel};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use std::fmt;
+use std::io::{Read, Write};
 
 mod commands;
 
 /// Gets one post by numeric ID.
+#[cfg(test)]
 pub(crate) const POSTS_GET: &str = "jsonplaceholder.posts.get";
 /// Creates one non-persistent post.
+#[cfg(test)]
 pub(crate) const POSTS_CREATE: &str = "jsonplaceholder.posts.create";
 /// The command word this provider contributes to the sandboxed shell.
 ///
@@ -31,102 +38,114 @@ const MAX_BODY_BYTES: usize = 4 * 1024;
 const MAX_RESPONSE_TITLE_BYTES: usize = 4 * 1024;
 const MAX_RESPONSE_BODY_BYTES: usize = 16 * 1024;
 
-mod bindings {
-    wit_bindgen::generate!({
-        path: "wit",
-        world: "provider",
-        generate_all,
-        pub_export_macro: true,
-    });
-}
-
-struct JsonPlaceholder;
+/// A narrow broker-mediated JSONPlaceholder provider.
+pub struct JsonPlaceholder;
+/// One bounded post read.
+pub struct GetPost;
+/// One explicitly authorized external write.
+pub struct CreatePost;
 
 impl Provider for JsonPlaceholder {
-    fn manifest() -> ProviderManifest {
-        ProviderManifest {
-            api_version: ProviderApiVersion::V1Alpha1,
-            id: "jsonplaceholder"
-                .parse()
-                .expect("static provider ID is valid"),
-            description: "Reads and creates bounded JSONPlaceholder posts through broker HTTP"
-                .to_owned(),
-            command_words: vec![COMMAND_WORD.to_owned()],
-            capabilities: vec![
-                ProviderCapability {
-                    id: POSTS_GET.parse().expect("static capability ID is valid"),
-                    description: "Gets one JSONPlaceholder post by numeric ID".to_owned(),
-                    effect: EffectKind::ReadOnly,
-                    risk: RiskLevel::Low,
-                    input_schema: json!({
-                        "type": "object",
-                        "properties": {
-                            "postId": {"type": "integer", "minimum": 1, "maximum": 100},
-                            "endpoint": {
-                                "type": "string",
-                                "maxLength": MAX_ENDPOINT_BYTES,
-                                "x-dekopon-maxUtf8Bytes": MAX_ENDPOINT_BYTES,
-                                "description": "Optional broker-constrained endpoint, limited to 512 UTF-8 bytes; defaults to JSONPlaceholder. Plain HTTP accepts only literal loopback test endpoints."
-                            }
-                        },
-                        "required": ["postId"],
-                        "additionalProperties": false
-                    }),
-                },
-                ProviderCapability {
-                    id: POSTS_CREATE.parse().expect("static capability ID is valid"),
-                    description: "Creates one non-persistent JSONPlaceholder post".to_owned(),
-                    effect: EffectKind::ExternalWrite,
-                    risk: RiskLevel::Medium,
-                    input_schema: json!({
-                        "type": "object",
-                        "properties": {
-                            "userId": {"type": "integer", "minimum": 1, "maximum": 10},
-                            "title": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": MAX_TITLE_BYTES,
-                                "x-dekopon-maxUtf8Bytes": MAX_TITLE_BYTES,
-                                "description": "Post title, limited to 256 UTF-8 bytes."
-                            },
-                            "body": {
-                                "type": "string",
-                                "minLength": 1,
-                                "maxLength": MAX_BODY_BYTES,
-                                "x-dekopon-maxUtf8Bytes": MAX_BODY_BYTES,
-                                "description": "Post body, limited to 4096 UTF-8 bytes."
-                            },
-                            "endpoint": {
-                                "type": "string",
-                                "maxLength": MAX_ENDPOINT_BYTES,
-                                "x-dekopon-maxUtf8Bytes": MAX_ENDPOINT_BYTES,
-                                "description": "Optional broker-constrained endpoint, limited to 512 UTF-8 bytes; defaults to JSONPlaceholder. Plain HTTP accepts only literal loopback test endpoints."
-                            }
-                        },
-                        "required": ["userId", "title", "body"],
-                        "additionalProperties": false
-                    }),
-                },
-            ],
-        }
-    }
-
-    fn invoke(capability: &CapabilityId, input: Value) -> Result<Value, ProviderError> {
-        invoke_with(capability, input, dekopon_provider_http::send)
-    }
-
-    fn run_command(argv: &[String], stdin: Option<&str>) -> Result<CommandRun, ProviderError> {
-        commands::run(argv, stdin)
+    const ID: &'static str = "jsonplaceholder";
+    const COMMAND_WORDS: &'static [&'static str] = &[COMMAND_WORD];
+    const DESCRIPTION: &'static str =
+        "Reads and creates bounded JSONPlaceholder posts through broker HTTP";
+    type Args = commands::Placeholder;
+    type Capabilities = (GetPost, CreatePost);
+    fn propose(args: Self::Args, stdin_piped: bool) -> Result<Proposal<Self>, Usage> {
+        commands::propose(args, stdin_piped)
     }
 }
 
+/// Stable sanitized guest failure.
+#[derive(Debug)]
+pub struct ProviderError {
+    code: &'static str,
+    message: &'static str,
+}
+impl ProviderError {
+    fn new(code: &'static str, message: &'static str) -> Self {
+        Self { code, message }
+    }
+    #[cfg(test)]
+    fn code(&self) -> &str {
+        self.code
+    }
+    #[cfg(test)]
+    fn message(&self) -> &str {
+        self.message
+    }
+}
+impl fmt::Display for ProviderError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.message)
+    }
+}
+impl Failure for ProviderError {
+    fn code(&self) -> Code {
+        match self.code {
+            "invalid-input" => Code::INVALID_INPUT,
+            "invalid-endpoint" => Code::new("invalid-endpoint"),
+            "invalid-request" => Code::new("invalid-request"),
+            "http-failed" => Code::new("http-failed"),
+            "not-found" => Code::new("not-found"),
+            "unexpected-status" => Code::new("unexpected-status"),
+            "invalid-response" => Code::new("invalid-response"),
+            "output-closed" => Code::new("output-closed"),
+            "usage" => Code::USAGE,
+            _ => Code::UNKNOWN_CAPABILITY,
+        }
+    }
+}
+
+fn emit(value: Value, out: &mut Stdout) -> Result<(), ProviderError> {
+    serde_json::to_writer(&mut *out, &value)
+        .map_err(|_| ProviderError::new("output-closed", "stdout's reader has gone"))?;
+    out.write_all(b"\n")
+        .map_err(|_| ProviderError::new("output-closed", "stdout's reader has gone"))
+}
+
+impl Capability for GetPost {
+    type Provider = JsonPlaceholder;
+    const NAME: &'static str = "posts.get";
+    const DESCRIPTION: &'static str = "Gets one JSONPlaceholder post by numeric ID";
+    const EFFECT: EffectKind = EffectKind::ReadOnly;
+    const RISK: RiskLevel = RiskLevel::Low;
+    type Input = GetPostInput;
+    type Needs = Http;
+    type Error = ProviderError;
+    fn run(input: Self::Input, http: Http, out: &mut Stdout) -> Result<(), Self::Error> {
+        emit(get_post(input, |request| http.send(request))?, out)
+    }
+}
+impl Capability for CreatePost {
+    type Provider = JsonPlaceholder;
+    const NAME: &'static str = "posts.create";
+    const DESCRIPTION: &'static str = "Creates one non-persistent JSONPlaceholder post";
+    const EFFECT: EffectKind = EffectKind::ExternalWrite;
+    const RISK: RiskLevel = RiskLevel::Medium;
+    type Input = CreatePostInput;
+    type Needs = Http;
+    type Error = ProviderError;
+    fn run(input: Self::Input, http: Http, out: &mut Stdout) -> Result<(), Self::Error> {
+        emit(create_post(input, |request| http.send(request))?, out)
+    }
+}
+
+#[cfg(test)]
 fn invoke_with<F>(capability: &CapabilityId, input: Value, send: F) -> Result<Value, ProviderError>
 where
     F: FnOnce(Request) -> Result<Response, HttpError>,
 {
     match capability.as_str() {
-        POSTS_GET => get_post(input, send),
-        POSTS_CREATE => create_post(input, send),
+        POSTS_GET => get_post(
+            serde_json::from_value(input).map_err(|_| invalid_input())?,
+            send,
+        ),
+        POSTS_CREATE => create_post(
+            serde_json::from_value(input).map_err(|_| invalid_input())?,
+            send,
+        ),
         _ => Err(ProviderError::new(
             "unknown-capability",
             "unsupported JSONPlaceholder capability",
@@ -134,22 +153,40 @@ where
     }
 }
 
-#[derive(Debug, Deserialize)]
+/// Closed input for a single bounded GET.
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct GetPostInput {
+pub struct GetPostInput {
+    #[schemars(range(min = 1, max = 100))]
     post_id: u32,
-    #[serde(default)]
+    /// Optional broker-constrained endpoint, limited to 512 UTF-8 bytes; defaults to JSONPlaceholder. Plain HTTP accepts only literal loopback test endpoints.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(length(max = 512), extend("x-dekopon-maxUtf8Bytes" = 512))]
     endpoint: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+/// Closed input for a synthetic external write.
+#[derive(Debug, Deserialize, Serialize, JsonSchema)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-struct CreatePostInput {
+pub struct CreatePostInput {
+    #[schemars(range(min = 1, max = 10))]
     user_id: u32,
+    /// Post title, limited to 256 UTF-8 bytes.
+    #[schemars(length(min = 1, max = 256), extend("x-dekopon-maxUtf8Bytes" = 256))]
     title: String,
+    /// Post body, limited to 4096 UTF-8 bytes.
+    #[schemars(length(min = 1, max = 4096), extend("x-dekopon-maxUtf8Bytes" = 4096))]
     body: String,
-    #[serde(default)]
+    /// Optional broker-constrained endpoint, limited to 512 UTF-8 bytes; defaults to JSONPlaceholder. Plain HTTP accepts only literal loopback test endpoints.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[schemars(length(max = 512), extend("x-dekopon-maxUtf8Bytes" = 512))]
     endpoint: Option<String>,
+    /// Marker only: the piped body is read after authorization, never included in a proposal.
+    #[serde(default, skip_serializing_if = "is_false")]
+    stdin_piped: bool,
+}
+fn is_false(value: &bool) -> bool {
+    !value
 }
 
 #[derive(Debug, Deserialize, PartialEq, Serialize)]
@@ -161,16 +198,15 @@ struct Post {
     body: String,
 }
 
-fn get_post<F>(input: Value, send: F) -> Result<Value, ProviderError>
+fn get_post<F>(input: GetPostInput, send: F) -> Result<Value, ProviderError>
 where
     F: FnOnce(Request) -> Result<Response, HttpError>,
 {
-    let input = serde_json::from_value::<GetPostInput>(input).map_err(|_| invalid_input())?;
     if !(1..=100).contains(&input.post_id) {
         return Err(invalid_input());
     }
     let endpoint = endpoint(input.endpoint.as_deref())?;
-    let request = Request::new(method::GET, format!("{endpoint}/posts/{}", input.post_id))
+    let request = Request::new("GET", format!("{endpoint}/posts/{}", input.post_id))
         .map_err(|_| invalid_request())?
         .with_header(json_header("accept")?);
     let response = send(request).map_err(|_| http_failed())?;
@@ -187,11 +223,28 @@ where
     Ok(json!({"post": post}))
 }
 
-fn create_post<F>(input: Value, send: F) -> Result<Value, ProviderError>
+fn create_post<F>(input: CreatePostInput, send: F) -> Result<Value, ProviderError>
 where
     F: FnOnce(Request) -> Result<Response, HttpError>,
 {
-    let input = serde_json::from_value::<CreatePostInput>(input).map_err(|_| invalid_input())?;
+    let mut input = input;
+    if input.stdin_piped {
+        if input.body != "-" {
+            return Err(invalid_input());
+        }
+        let stdin = provider::stdin().ok_or_else(|| {
+            ProviderError::new(
+                "usage",
+                "placeholder posts create --body -: nothing was piped in",
+            )
+        })?;
+        let mut bytes = Vec::new();
+        stdin
+            .take((MAX_BODY_BYTES + 1) as u64)
+            .read_to_end(&mut bytes)
+            .map_err(|_| invalid_input())?;
+        input.body = String::from_utf8(bytes).map_err(|_| invalid_input())?;
+    }
     validate_create_input(&input)?;
     let endpoint = endpoint(input.endpoint.as_deref())?;
     let body = serde_json::to_vec(&json!({
@@ -200,7 +253,7 @@ where
         "body": &input.body
     }))
     .map_err(|_| invalid_request())?;
-    let request = Request::new(method::POST, format!("{endpoint}/posts"))
+    let request = Request::new("POST", format!("{endpoint}/posts"))
         .map_err(|_| invalid_request())?
         .with_header(json_header("accept")?)
         .with_header(json_header("content-type")?)
@@ -308,12 +361,15 @@ fn invalid_response() -> ProviderError {
     ProviderError::new("invalid-response", "endpoint returned an invalid post")
 }
 
-dekopon_provider_sdk::export_provider_with_cli!(JsonPlaceholder, bindings);
+#[cfg(target_arch = "wasm32")]
+mod guest {
+    dekopon_provider_sdk::export!(super::JsonPlaceholder);
+}
 
 #[cfg(test)]
 mod tests {
-    use dekopon_provider_http::{Header, HttpErrorCode, Response};
-    use dekopon_provider_sdk::{EffectKind, Provider, RiskLevel};
+    use dekopon_provider_sdk::provider::{self, Header, HttpErrorCode, Response};
+    use dekopon_provider_sdk::{EffectKind, RiskLevel};
     use serde_json::{Value, json};
 
     use super::{COMMAND_WORD, JsonPlaceholder, endpoint, invoke_with};
@@ -324,7 +380,7 @@ mod tests {
 
     #[test]
     fn manifest_separates_read_and_external_write_authority() {
-        let manifest = JsonPlaceholder::manifest();
+        let manifest = provider::manifest::<JsonPlaceholder>().expect("manifest");
         assert_eq!(manifest.id.as_str(), "jsonplaceholder");
         assert_eq!(manifest.command_words, [COMMAND_WORD]);
         assert_eq!(manifest.capabilities.len(), 2);
@@ -437,7 +493,7 @@ mod tests {
             json!({"postId": 1}),
             |request| {
                 assert_eq!(request.uri, "https://jsonplaceholder.typicode.com/posts/1");
-                Err(dekopon_provider_http::HttpError {
+                Err(dekopon_provider_sdk::provider::HttpError {
                     code: HttpErrorCode::Denied,
                     message: "secret path and credential".to_owned(),
                 })
@@ -484,7 +540,7 @@ mod tests {
 
     #[test]
     fn manifest_documents_machine_readable_utf8_byte_limits() {
-        let manifest = JsonPlaceholder::manifest();
+        let manifest = provider::manifest::<JsonPlaceholder>().expect("manifest");
         let get_properties = &manifest.capabilities[0].input_schema["properties"];
         assert_eq!(
             get_properties["endpoint"]["x-dekopon-maxUtf8Bytes"],
