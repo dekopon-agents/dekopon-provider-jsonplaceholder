@@ -129,7 +129,7 @@ wasm-tools validate "$core"
 wasm-tools validate jsonplaceholder-provider.wasm
 tmp=$(mktemp -d)
 wasm-tools component wit jsonplaceholder-provider.wasm >"$tmp/component.wit"
-grep -E '^\s*import ' "$tmp/component.wit" | sed -E 's/^\s*import ([^;]+);.*/\1/' >"$tmp/component-imports.txt"
+grep -E '^[[:space:]]*import ' "$tmp/component.wit" | sed -E 's/^[[:space:]]*import ([^;]+);.*/\1/' >"$tmp/component-imports.txt"
 if wasmtime run --invoke 'describe()' jsonplaceholder-provider.wasm >/dev/null 2>"$tmp/refusal.err"; then
   echo 'error: component instantiated under an empty linker' >&2; exit 1
 fi
