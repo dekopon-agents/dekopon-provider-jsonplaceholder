@@ -123,13 +123,23 @@ cargo clippy --locked --workspace --all-targets -- -D warnings
 cargo clippy --locked --package dekopon-jsonplaceholder-provider --lib --target wasm32-unknown-unknown -- -D warnings
 cargo deny --all-features check bans licenses sources advisories
 ../provider-workflows/build.sh
+core=target/wasm32-unknown-unknown/release/dekopon_jsonplaceholder_provider.wasm
+test -s "$core"
+wasm-tools validate "$core"
 wasm-tools validate jsonplaceholder-provider.wasm
-wasm-tools component wit jsonplaceholder-provider.wasm
+tmp=$(mktemp -d)
+wasm-tools component wit jsonplaceholder-provider.wasm >"$tmp/component.wit"
+grep -E '^\s*import ' "$tmp/component.wit" | sed -E 's/^\s*import ([^;]+);.*/\1/' >"$tmp/component-imports.txt"
+if wasmtime run --invoke 'describe()' jsonplaceholder-provider.wasm >/dev/null 2>"$tmp/refusal.err"; then
+  echo 'error: component instantiated under an empty linker' >&2; exit 1
+fi
+grep -F -f "$tmp/component-imports.txt" "$tmp/refusal.err" >/dev/null
+rm -r "$tmp"
 DEKOPON_PROVIDER_COMPONENT=$PWD/jsonplaceholder-provider.wasm cargo test --locked --workspace
 RUSTDOCFLAGS='-D warnings' cargo doc --locked --workspace --all-features --no-deps
 ```
 
-`DEKOPON_PROVIDER_COMPONENT` must point at the built component; the broker-host tests panic without it. The shared `ci / validate` workflow in `dekopon-agents/provider-workflows` also generates a CycloneDX SBOM and verifies the release asset layout. The second-build reproducibility comparison is currently paused.
+`DEKOPON_PROVIDER_COMPONENT` must point at the built component; the broker-host tests panic without it. The shared `ci / validate` workflow in `dekopon-agents/provider-workflows` also generates a CycloneDX SBOM and verifies the release asset layout. The core Wasm must validate independently of the component. With pinned Wasmtime 48.0.2, the raw empty-linker smoke must refuse to instantiate the component and name a declared import. The second-build reproducibility comparison is currently paused.
 
 ## Release
 
