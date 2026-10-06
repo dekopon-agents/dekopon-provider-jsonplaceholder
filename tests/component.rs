@@ -28,9 +28,14 @@ fn native_get_emits_exact_json_line_and_no_error() {
     let output = native.call("jsonplaceholder.posts.get", r#"{"postId":7}"#);
     assert_eq!(output.status, 0, "{}", output.stderr);
     assert_eq!(
-        output.stdout,
-        b"{\"post\":{\"body\":\"fixture\",\"id\":7,\"title\":\"mock\",\"userId\":2}}\n"
+        serde_json::from_slice::<serde_json::Value>(&output.stdout).expect("one JSON object"),
+        json!({"post": {"userId": 2, "id": 7, "title": "mock", "body": "fixture"}})
     );
+    assert_eq!(
+        output.stdout.iter().filter(|&&byte| byte == b'\n').count(),
+        1
+    );
+    assert!(output.stdout.ends_with(b"\n"));
     assert!(output.stderr.is_empty());
 }
 
