@@ -1,12 +1,11 @@
 //! Bounded typed JSONPlaceholder capabilities over broker-mediated HTTP.
 
-use std::net::SocketAddr;
-
 #[cfg(test)]
 use dekopon_provider_sdk::CapabilityId;
+use dekopon_provider_sdk::provider::endpoint::Base;
 use dekopon_provider_sdk::provider::{
     self, Capability, Code, Failure, Header, Http, HttpError, Proposal, Provider, Request,
-    Response, Stdout, Usage,
+    Response, Settings, Stdout, Usage,
 };
 use dekopon_provider_sdk::schemars::JsonSchema;
 use dekopon_provider_sdk::{EffectKind, RiskLevel};
@@ -30,9 +29,20 @@ pub(crate) const POSTS_CREATE: &str = "jsonplaceholder.posts.create";
 /// `jsonplaceholder.posts.get`.
 pub(crate) const COMMAND_WORD: &str = "placeholder";
 
-const DEFAULT_ENDPOINT: &str = "https://jsonplaceholder.typicode.com";
-const PRODUCTION_HOST: &str = "jsonplaceholder.typicode.com";
-const MAX_ENDPOINT_BYTES: usize = 512;
+#[derive(Default, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[allow(missing_docs)]
+pub struct JsonPlaceholderSettings {
+    base_url: Option<Base>,
+}
+
+impl JsonPlaceholderSettings {
+    fn base(self) -> Base {
+        self.base_url
+            .unwrap_or(Base::from_static("https://jsonplaceholder.typicode.com"))
+    }
+}
+
 const MAX_TITLE_BYTES: usize = 256;
 const MAX_BODY_BYTES: usize = 4 * 1024;
 const MAX_RESPONSE_TITLE_BYTES: usize = 4 * 1024;
@@ -85,7 +95,6 @@ impl Failure for ProviderError {
     fn code(&self) -> Code {
         match self.code {
             "invalid-input" => Code::INVALID_INPUT,
-            "invalid-endpoint" => Code::new("invalid-endpoint"),
             "invalid-request" => Code::new("invalid-request"),
             "http-failed" => Code::new("http-failed"),
             "not-found" => Code::new("not-found"),
@@ -112,10 +121,19 @@ impl Capability for GetPost {
     const EFFECT: EffectKind = EffectKind::ReadOnly;
     const RISK: RiskLevel = RiskLevel::Low;
     type Input = GetPostInput;
-    type Needs = Http;
+    type Needs = (Settings<JsonPlaceholderSettings>, Http);
     type Error = ProviderError;
-    fn run(input: Self::Input, http: Http, out: &mut Stdout) -> Result<(), Self::Error> {
-        emit(get_post(input, |request| http.send(request))?, out)
+    fn run(
+        input: Self::Input,
+        (settings, http): Self::Needs,
+        out: &mut Stdout,
+    ) -> Result<(), Self::Error> {
+        emit(
+            get_post(input, &settings.into_inner().base(), |request| {
+                http.send(request)
+            })?,
+            out,
+        )
     }
 }
 impl Capability for CreatePost {
@@ -125,10 +143,19 @@ impl Capability for CreatePost {
     const EFFECT: EffectKind = EffectKind::ExternalWrite;
     const RISK: RiskLevel = RiskLevel::Medium;
     type Input = CreatePostInput;
-    type Needs = Http;
+    type Needs = (Settings<JsonPlaceholderSettings>, Http);
     type Error = ProviderError;
-    fn run(input: Self::Input, http: Http, out: &mut Stdout) -> Result<(), Self::Error> {
-        emit(create_post(input, |request| http.send(request))?, out)
+    fn run(
+        input: Self::Input,
+        (settings, http): Self::Needs,
+        out: &mut Stdout,
+    ) -> Result<(), Self::Error> {
+        emit(
+            create_post(input, &settings.into_inner().base(), |request| {
+                http.send(request)
+            })?,
+            out,
+        )
     }
 }
 
@@ -140,10 +167,12 @@ where
     match capability.as_str() {
         POSTS_GET => get_post(
             serde_json::from_value(input).map_err(|_| invalid_input())?,
+            &JsonPlaceholderSettings::default().base(),
             send,
         ),
         POSTS_CREATE => create_post(
             serde_json::from_value(input).map_err(|_| invalid_input())?,
+            &JsonPlaceholderSettings::default().base(),
             send,
         ),
         _ => Err(ProviderError::new(
@@ -159,10 +188,6 @@ where
 pub struct GetPostInput {
     #[schemars(range(min = 1, max = 100))]
     post_id: u32,
-    /// Optional broker-constrained endpoint, limited to 512 UTF-8 bytes; defaults to JSONPlaceholder. Plain HTTP accepts only literal loopback test endpoints.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(length(max = 512), extend("x-dekopon-maxUtf8Bytes" = 512))]
-    endpoint: Option<String>,
 }
 
 /// Closed input for a synthetic external write.
@@ -177,10 +202,6 @@ pub struct CreatePostInput {
     /// Post body, limited to 4096 UTF-8 bytes.
     #[schemars(length(min = 1, max = 4096), extend("x-dekopon-maxUtf8Bytes" = 4096))]
     body: String,
-    /// Optional broker-constrained endpoint, limited to 512 UTF-8 bytes; defaults to JSONPlaceholder. Plain HTTP accepts only literal loopback test endpoints.
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[schemars(length(max = 512), extend("x-dekopon-maxUtf8Bytes" = 512))]
-    endpoint: Option<String>,
     /// Marker only: the piped body is read after authorization, never included in a proposal.
     #[serde(default, skip_serializing_if = "is_false")]
     stdin_piped: bool,
@@ -198,17 +219,20 @@ struct Post {
     body: String,
 }
 
-fn get_post<F>(input: GetPostInput, send: F) -> Result<Value, ProviderError>
+fn get_post<F>(input: GetPostInput, base: &Base, send: F) -> Result<Value, ProviderError>
 where
     F: FnOnce(Request) -> Result<Response, HttpError>,
 {
     if !(1..=100).contains(&input.post_id) {
         return Err(invalid_input());
     }
-    let endpoint = endpoint(input.endpoint.as_deref())?;
-    let request = Request::new("GET", format!("{endpoint}/posts/{}", input.post_id))
-        .map_err(|_| invalid_request())?
-        .with_header(json_header("accept")?);
+    let request = Request::new(
+        "GET",
+        base.join(&format!("/posts/{}", input.post_id))
+            .map_err(|_| invalid_request())?,
+    )
+    .map_err(|_| invalid_request())?
+    .with_header(json_header("accept")?);
     let response = send(request).map_err(|_| http_failed())?;
     if response.status == 404 {
         return Err(ProviderError::new("not-found", "post was not found"));
@@ -223,7 +247,7 @@ where
     Ok(json!({"post": post}))
 }
 
-fn create_post<F>(input: CreatePostInput, send: F) -> Result<Value, ProviderError>
+fn create_post<F>(input: CreatePostInput, base: &Base, send: F) -> Result<Value, ProviderError>
 where
     F: FnOnce(Request) -> Result<Response, HttpError>,
 {
@@ -246,14 +270,13 @@ where
         input.body = String::from_utf8(bytes).map_err(|_| invalid_input())?;
     }
     validate_create_input(&input)?;
-    let endpoint = endpoint(input.endpoint.as_deref())?;
     let body = serde_json::to_vec(&json!({
         "userId": input.user_id,
         "title": &input.title,
         "body": &input.body
     }))
     .map_err(|_| invalid_request())?;
-    let request = Request::new("POST", format!("{endpoint}/posts"))
+    let request = Request::new("POST", base.join("/posts").map_err(|_| invalid_request())?)
         .map_err(|_| invalid_request())?
         .with_header(json_header("accept")?)
         .with_header(json_header("content-type")?)
@@ -299,28 +322,6 @@ fn decode_post(body: &[u8]) -> Result<Post, ProviderError> {
     Ok(post)
 }
 
-fn endpoint(value: Option<&str>) -> Result<String, ProviderError> {
-    let value = value.unwrap_or(DEFAULT_ENDPOINT);
-    if value.len() > MAX_ENDPOINT_BYTES {
-        return Err(invalid_endpoint());
-    }
-    if matches!(
-        value,
-        "https://jsonplaceholder.typicode.com" | "https://jsonplaceholder.typicode.com/"
-    ) {
-        return Ok(format!("https://{PRODUCTION_HOST}"));
-    }
-    let authority = value.strip_prefix("http://").ok_or_else(invalid_endpoint)?;
-    let authority = authority.strip_suffix('/').unwrap_or(authority);
-    let address = authority
-        .parse::<SocketAddr>()
-        .map_err(|_| invalid_endpoint())?;
-    if address.port() == 0 || !address.ip().is_loopback() {
-        return Err(invalid_endpoint());
-    }
-    Ok(format!("http://{address}"))
-}
-
 fn json_header(name: &'static str) -> Result<Header, ProviderError> {
     Header::text(name, "application/json").map_err(|_| invalid_request())
 }
@@ -329,13 +330,6 @@ fn invalid_input() -> ProviderError {
     ProviderError::new(
         "invalid-input",
         "input does not match the capability contract",
-    )
-}
-
-fn invalid_endpoint() -> ProviderError {
-    ProviderError::new(
-        "invalid-endpoint",
-        "endpoint must be production JSONPlaceholder HTTPS or explicit loopback HTTP",
     )
 }
 
@@ -372,7 +366,7 @@ mod tests {
     use dekopon_provider_sdk::{EffectKind, RiskLevel};
     use serde_json::{Value, json};
 
-    use super::{COMMAND_WORD, JsonPlaceholder, endpoint, invoke_with};
+    use super::{COMMAND_WORD, JsonPlaceholder, invoke_with};
 
     fn capability(value: &str) -> dekopon_provider_sdk::CapabilityId {
         value.parse().expect("valid capability fixture")
@@ -394,10 +388,10 @@ mod tests {
     fn get_uses_only_the_bounded_post_path_and_parses_mock_response() {
         let output = invoke_with(
             &capability("jsonplaceholder.posts.get"),
-            json!({"postId": 7, "endpoint": "http://127.0.0.1:43123"}),
+            json!({"postId": 7}),
             |request| {
                 assert_eq!(request.method, "GET");
-                assert_eq!(request.uri, "http://127.0.0.1:43123/posts/7");
+                assert_eq!(request.uri, "https://jsonplaceholder.typicode.com/posts/7");
                 assert_eq!(
                     request.headers,
                     vec![Header::text("accept", "application/json").expect("fixed header")]
@@ -428,12 +422,11 @@ mod tests {
             json!({
                 "userId": 3,
                 "title": "created title",
-                "body": "created body",
-                "endpoint": "http://[::1]:43124"
+                "body": "created body"
             }),
             |request| {
                 assert_eq!(request.method, "POST");
-                assert_eq!(request.uri, "http://[::1]:43124/posts");
+                assert_eq!(request.uri, "https://jsonplaceholder.typicode.com/posts");
                 assert_eq!(
                     request.headers,
                     vec![
@@ -463,20 +456,7 @@ mod tests {
     }
 
     #[test]
-    fn endpoints_and_inputs_fail_closed() {
-        assert_eq!(
-            endpoint(None).expect("default endpoint is valid"),
-            "https://jsonplaceholder.typicode.com"
-        );
-        for denied in [
-            "http://jsonplaceholder.typicode.com:80",
-            "https://example.com",
-            "https://user@jsonplaceholder.typicode.com",
-            "https://jsonplaceholder.typicode.com/posts",
-            "http://127.0.0.1",
-        ] {
-            assert!(endpoint(Some(denied)).is_err(), "accepted {denied}");
-        }
+    fn invalid_id_fails_closed() {
         let error = invoke_with(
             &capability("jsonplaceholder.posts.get"),
             json!({"postId": 0}),
@@ -505,52 +485,17 @@ mod tests {
     }
 
     #[test]
-    fn endpoint_allowlist_accepts_only_production_or_literal_loopback_sockets() {
-        for (input, normalized) in [
-            (
-                "https://jsonplaceholder.typicode.com",
-                "https://jsonplaceholder.typicode.com",
-            ),
-            (
-                "https://jsonplaceholder.typicode.com/",
-                "https://jsonplaceholder.typicode.com",
-            ),
-            ("http://127.0.0.1:1", "http://127.0.0.1:1"),
-            ("http://127.0.0.1:65535/", "http://127.0.0.1:65535"),
-            ("http://[::1]:43124", "http://[::1]:43124"),
-        ] {
-            assert_eq!(endpoint(Some(input)).expect("allowed endpoint"), normalized);
-        }
-        for denied in [
-            "http://localhost:80",
-            "http://127.0.0.1",
-            "http://127.0.0.1:0",
-            "http://127.0.0.1:80/path",
-            "http://127.0.0.1:80?query",
-            "http://127.0.0.1:80#fragment",
-            "http://user@127.0.0.1:80",
-            "http://192.0.2.1:80",
-            "https://127.0.0.1:443",
-            "https://example.com",
-        ] {
-            assert!(endpoint(Some(denied)).is_err(), "accepted {denied}");
-        }
-        assert!(endpoint(Some(&"x".repeat(super::MAX_ENDPOINT_BYTES + 1))).is_err());
-    }
-
-    #[test]
     fn manifest_documents_machine_readable_utf8_byte_limits() {
         let manifest = provider::manifest::<JsonPlaceholder>().expect("manifest");
-        let get_properties = &manifest.capabilities[0].input_schema["properties"];
-        assert_eq!(
-            get_properties["endpoint"]["x-dekopon-maxUtf8Bytes"],
-            super::MAX_ENDPOINT_BYTES
-        );
+        for capability in &manifest.capabilities {
+            assert_eq!(capability.input_schema["additionalProperties"], false);
+            let properties = capability.input_schema["properties"].as_object().unwrap();
+            assert!(!properties.keys().any(|key| key.to_ascii_lowercase().contains("url") || key.contains("endpoint")));
+        }
         let create_properties = &manifest.capabilities[1].input_schema["properties"];
         for (field, bytes) in [
             ("title", super::MAX_TITLE_BYTES),
             ("body", super::MAX_BODY_BYTES),
-            ("endpoint", super::MAX_ENDPOINT_BYTES),
         ] {
             assert_eq!(create_properties[field]["x-dekopon-maxUtf8Bytes"], bytes);
             assert!(

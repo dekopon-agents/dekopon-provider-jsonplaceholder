@@ -4,9 +4,9 @@ Report vulnerabilities privately through GitHub Security Advisories once the pub
 
 ## Trust boundary
 
-This component is broker-only. It imports exactly `dekopon:http/client@1.0.0`; direct hosts intentionally refuse to load it. It has no WASI, sockets, filesystem, process, environment, clock, randomness, secrets, or ambient network authority.
+This component is broker-only. It imports broker HTTP, stdio, and owner settings; direct hosts intentionally refuse to load it. It has no WASI, sockets, filesystem, process, environment, clock, randomness, secrets, or ambient network authority.
 
-The guest accepts only production JSONPlaceholder HTTPS or explicit literal loopback HTTP sockets. That validation is defense in depth, not authorization. Dekopon 0.15.0 remains authoritative for exact authority and method matching, DNS/destination controls, redirect behavior, one-call enforcement, deadlines, and byte limits. Production must keep `allowPlaintextLoopback: false`.
+The SDK validates the owner-controlled `providerSettings.jsonplaceholder.baseUrl`; capability inputs cannot select an API origin. The broker remains authoritative for exact authority and method matching, DNS/destination controls, redirect behavior, one-call enforcement, deadlines, and byte limits. Production must keep `allowPlaintextLoopback: false`.
 
 Read and create are distinct capabilities. Create remains an external write even though JSONPlaceholder returns a non-persistent synthetic record. A failure after POST may mean the effect executed.
 

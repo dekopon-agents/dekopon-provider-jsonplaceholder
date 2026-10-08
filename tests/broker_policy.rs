@@ -95,7 +95,7 @@ async fn read_only_catalog_and_cedar_deny_create_before_http() {
     )
     .expect("attested context");
     // No server exists at :9. If policy wrongly grants POST, the result differs from Denied.
-    let input = json!({"userId": 3, "title": "t", "body": "-", "stdinPiped": true, "endpoint": "http://127.0.0.1:9"});
+    let input = json!({"userId": 3, "title": "t", "body": "-", "stdinPiped": true});
     let denied = broker
         .invoke(
             &context,
