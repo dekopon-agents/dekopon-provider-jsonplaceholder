@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.1] - 2026-10-08
+
+### Changed
+
+- Pin the provider SDK, testkit and broker dependencies to core 0.36.0; no provider behavior or WIT changes.
+
 ## [0.6.0] - 2026-10-06
 
 ### Changed
