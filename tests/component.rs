@@ -74,3 +74,151 @@ fn piped_body_is_bounded_and_read_only_on_authorized_invoke() {
     assert_ne!(oversized.status, 0);
     assert!(oversized.stdout.is_empty());
 }
+
+#[test]
+fn settings_and_model_origin_controls_fail_before_requests() {
+    for (capability, input) in [
+        ("jsonplaceholder.posts.get", json!({"postId": 7})),
+        (
+            "jsonplaceholder.posts.create",
+            json!({"userId": 3, "title": "t", "body": "b"}),
+        ),
+    ] {
+        for settings in [
+            json!({"baseUrl": "https://fixture.example.test/?q=1"}),
+            json!({"baseUrl": "https://user@fixture.example.test"}),
+            json!({"baseUrl": "https://fixture.example.test/#fragment"}),
+            json!({"baseUrl": "ftp://fixture.example.test"}),
+            json!({"baseUrl": "fixture.example.test"}),
+            json!({"baseUrl": "https://"}),
+            json!({"baseUrl": "https://fixture.example.test/ space"}),
+            json!({"baseUrl": 42}),
+            json!({"endpoint": "http://127.0.0.1:43123"}),
+        ] {
+            let native = Native::<JsonPlaceholder>::new().settings(settings);
+            let output = native.call(capability, &input.to_string());
+            assert_ne!(output.status, 0);
+            assert!(output.stderr.contains("settings"), "{}", output.stderr);
+            assert!(native.requests().is_empty());
+        }
+        for field in ["endpoint", "baseUrl", "url"] {
+            let mut input = input.clone();
+            input[field] = json!("http://127.0.0.1:43123");
+            let native = Native::<JsonPlaceholder>::new();
+            let output = native.call(capability, &input.to_string());
+            assert_ne!(output.status, 0);
+            assert!(native.requests().is_empty());
+        }
+    }
+}
+
+#[test]
+fn create_preserves_default_and_owner_prefixed_routing() {
+    for (settings, host, uri) in [
+        (
+            None,
+            "jsonplaceholder.typicode.com",
+            "https://jsonplaceholder.typicode.com/posts",
+        ),
+        (
+            Some(json!({"baseUrl": "https://[::1]:43124/fixture/"})),
+            "[::1]:43124",
+            "https://[::1]:43124/fixture/posts",
+        ),
+    ] {
+        let mut native = Native::<JsonPlaceholder>::new().http(HttpScript::new(
+            host,
+            "POST",
+            Response {
+                status: 201,
+                headers: vec![],
+                body: br#"{"userId":3,"id":101,"title":"t","body":"b"}"#.to_vec(),
+            },
+        ));
+        if let Some(settings) = settings {
+            native = native.settings(settings);
+        }
+        let output = native.call(
+            "jsonplaceholder.posts.create",
+            r#"{"userId":3,"title":"t","body":"b"}"#,
+        );
+        assert_eq!(output.status, 0, "{}", output.stderr);
+        let sent = native.requests();
+        assert_eq!(sent.len(), 1);
+        assert_eq!(sent[0].uri, uri);
+        assert_eq!(sent[0].method, "POST");
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&sent[0].body).unwrap(),
+            json!({"userId":3,"title":"t","body":"b"})
+        );
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap(),
+            json!({"post":{"userId":3,"id":101,"title":"t","body":"b"}})
+        );
+    }
+}
+
+#[test]
+fn real_component_rejects_old_model_endpoint_and_invalid_settings() {
+    use dekopon_provider_sdk_testkit::Harness;
+    let component =
+        std::env::var_os("DEKOPON_PROVIDER_COMPONENT").expect("built component required");
+    for (capability, input) in [
+        ("jsonplaceholder.posts.get", json!({"postId": 7})),
+        (
+            "jsonplaceholder.posts.create",
+            json!({"userId": 3, "title": "t", "body": "b"}),
+        ),
+    ] {
+        let mut old_input = input.clone();
+        old_input["endpoint"] = json!("http://127.0.0.1:43123");
+        let refused = Harness::<JsonPlaceholder>::get(&component)
+            .call(capability, old_input)
+            .unwrap();
+        assert_ne!(refused.status, 0);
+        assert!(refused.http_calls.is_empty());
+        let refused = Harness::<JsonPlaceholder>::get(&component)
+            .settings(json!({"baseUrl": "https://user@fixture.example.test"}))
+            .call(capability, input)
+            .unwrap();
+        assert_ne!(refused.status, 0);
+        assert!(refused.stderr.contains("settings"));
+        assert!(refused.http_calls.is_empty());
+    }
+}
+
+#[test]
+fn removed_endpoint_flags_are_usage_errors() {
+    use dekopon_provider_sdk::{CommandRunOutcome, provider};
+    for args in [
+        vec![
+            "posts",
+            "get",
+            "--post-id",
+            "7",
+            "--endpoint",
+            "http://127.0.0.1:43123",
+        ],
+        vec![
+            "posts",
+            "create",
+            "--user-id",
+            "3",
+            "--title",
+            "t",
+            "--body",
+            "b",
+            "--endpoint",
+            "http://127.0.0.1:43123",
+        ],
+    ] {
+        let result = provider::command::<JsonPlaceholder>(
+            &args.into_iter().map(str::to_owned).collect::<Vec<_>>(),
+            false,
+        );
+        assert!(matches!(
+            result,
+            CommandRunOutcome::Rendered { status: 2, .. }
+        ));
+    }
+}

@@ -28,9 +28,6 @@ struct Get {
     /// The post to read, 1 to 100
     #[arg(long, value_name = "ID")]
     post_id: u32,
-    /// Production JSONPlaceholder HTTPS (the default) or a literal loopback http://IP:PORT
-    #[arg(long, value_name = "URL")]
-    endpoint: Option<String>,
 }
 #[derive(Args)]
 struct Create {
@@ -43,9 +40,6 @@ struct Create {
     /// The body, up to 4096 UTF-8 bytes. `-` reads the piped value
     #[arg(long, value_name = "TEXT")]
     body: String,
-    /// Production JSONPlaceholder HTTPS (the default) or a literal loopback http://IP:PORT
-    #[arg(long, value_name = "URL")]
-    endpoint: Option<String>,
 }
 
 pub(crate) fn propose(
@@ -54,8 +48,7 @@ pub(crate) fn propose(
 ) -> Result<Proposal<JsonPlaceholder>, Usage> {
     match args.resource {
         Resource::Posts(Posts::Get(get)) => Ok(Proposal::to::<GetPost>(
-            serde_json::from_value(json!({"postId": get.post_id, "endpoint": get.endpoint}))
-                .expect("clap get input"),
+            serde_json::from_value(json!({"postId": get.post_id})).expect("clap get input"),
         )),
         Resource::Posts(Posts::Create(create)) => {
             let piped = create.body == "-";
@@ -69,7 +62,6 @@ pub(crate) fn propose(
                     "userId": create.user_id,
                     "title": create.title,
                     "body": &create.body,
-                    "endpoint": create.endpoint,
                     "stdinPiped": piped,
                 }))
                 .expect("clap create input"),

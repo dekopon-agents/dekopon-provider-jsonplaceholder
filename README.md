@@ -9,7 +9,7 @@ The provider preserves two separate typed capabilities:
 - `jsonplaceholder.posts.get`: low-risk `read-only` GET of post IDs 1–100.
 - `jsonplaceholder.posts.create`: medium-risk `external-write` POST. JSONPlaceholder returns a synthetic record and does **not** persist it, but the call remains an external effect and may have executed even if response validation fails.
 
-The guest has no transport, credentials, WASI, filesystem, sockets, environment, subprocess, or generic request escape hatch. It imports exactly the broker HTTP client and stdio streams (`dekopon:http/client@1.1.0`, `dekopon:stdio/streams@0.1.0`), and exports `dekopon:provider/provider@0.4.0`. It accepts only `https://jsonplaceholder.typicode.com` (with an optional trailing slash) or, for deterministic tests, an explicit literal loopback `http://IP:PORT` endpoint. Broker constraints must independently grant the exact effective authority and method.
+The guest has no transport, credentials, WASI, filesystem, sockets, environment, subprocess, or generic request escape hatch. It imports the broker HTTP client, stdio streams, and owner settings (`dekopon:http/client@1.1.0`, `dekopon:stdio/streams@0.1.0`, `dekopon:settings/config@0.1.0`), and exports `dekopon:provider/provider@0.4.0`. Requests default to `https://jsonplaceholder.typicode.com`. Only the owner can override the base URL. Broker constraints must independently grant the exact effective authority and method.
 
 GET sends `/posts/{postId}` with `Accept: application/json`. Create sends `/posts` with `Accept` and `Content-Type: application/json` and a body containing only `userId`, `title`, and `body`. Input and response byte limits, status mappings, echoed create fields, and transport-error redaction are enforced in the guest.
 
@@ -22,9 +22,9 @@ placeholder posts create --user-id 1 --title "hello" --body -   # reads piped in
 placeholder --help                                               # rendered by the guest, at exit 0
 ```
 
-The tree is the capability ID with the provider prefix swapped for the word: `placeholder posts get` proposes `jsonplaceholder.posts.get`. Each flag is the kebab-case of the wire field it fills, so `--post-id` is `postId`. `--help`, `--version`, and every usage error are rendered inside the component and authorize nothing. A well-formed argv becomes a *proposal* carrying exactly the input a direct invocation sends, and it travels the same constraint-set lookup and Cedar. ID ranges, byte limits, and the endpoint allowlist are checked by the same invoke path, so `--post-id 0` parses and is then refused as `invalid-input` before any HTTP. `--body -` proposes only the `body: "-"` and `stdinPiped: true` markers; no piped bytes enter the proposal or audit record. Once create is authorized, invoke reads at most 4097 bytes from broker stdio, rejects bodies over 4096 bytes, and then sends HTTP. Direct invoke and the word share validation. Successful invocations write exactly one JSON line to stdout; failures write stderr and return a nonzero status. A GET-only grant does not authorize create.
+The tree is the capability ID with the provider prefix swapped for the word: `placeholder posts get` proposes `jsonplaceholder.posts.get`. Each flag is the kebab-case of the wire field it fills, so `--post-id` is `postId`. `--help`, `--version`, and every usage error are rendered inside the component and authorize nothing. A well-formed argv becomes a *proposal* carrying exactly the input a direct invocation sends, and it travels the same constraint-set lookup and Cedar. ID ranges and byte limits are checked by the same invoke path, so `--post-id 0` parses and is then refused as `invalid-input` before any HTTP. `--body -` proposes only the `body: "-"` and `stdinPiped: true` markers; no piped bytes enter the proposal or audit record. Once create is authorized, invoke reads at most 4097 bytes from broker stdio, rejects bodies over 4096 bytes, and then sends HTTP. Direct invoke and the word share validation. Successful invocations write exactly one JSON line to stdout; failures write stderr and return a nonzero status. A GET-only grant does not authorize create.
 
-`--endpoint` is on both verbs because it is a wire field; it exists for loopback tests, and production constraint sets allow only `jsonplaceholder.typicode.com` whatever the flag says.
+`endpoint` inputs and `--endpoint` flags are rejected on both verbs. The owner sets `providerSettings.jsonplaceholder.baseUrl` to change the API origin or add a path prefix.
 
 ```console
 $ placeholder --help
@@ -43,29 +43,42 @@ Options:
 $ placeholder posts get --help
 Get one post by ID
 
-Usage: placeholder posts get [OPTIONS] --post-id <ID>
+Usage: placeholder posts get --post-id <ID>
 
 Options:
       --post-id <ID>    The post to read, 1 to 100
-      --endpoint <URL>  Production JSONPlaceholder HTTPS (the default) or a literal loopback http://IP:PORT
   -h, --help            Print help
 
 $ placeholder posts create --help
 Create one post; JSONPlaceholder echoes it back and does not persist it
 
-Usage: placeholder posts create [OPTIONS] --user-id <ID> --title <TEXT> --body <TEXT>
+Usage: placeholder posts create --user-id <ID> --title <TEXT> --body <TEXT>
 
 Options:
       --user-id <ID>    The author, 1 to 10
       --title <TEXT>    The title, up to 256 UTF-8 bytes
       --body <TEXT>     The body, up to 4096 UTF-8 bytes. `-` reads the piped value
-      --endpoint <URL>  Production JSONPlaceholder HTTPS (the default) or a literal loopback http://IP:PORT
   -h, --help            Print help
 ```
 
 ## Broker configuration
 
 Read and write require independent constraint and Cedar entries; read authority never implies write authority.
+
+An optional owner setting selects an HTTP(S) base with an optional path prefix:
+
+```yaml
+providerSettings:
+  jsonplaceholder:
+    baseUrl: https://fixture.example.test/jsonplaceholder
+```
+
+Absent settings or `{}` use `https://jsonplaceholder.typicode.com`. The SDK rejects userinfo, query,
+fragment, whitespace, missing or non-HTTP schemes, non-string values, and unknown settings keys
+before any request. A trailing slash is trimmed and request paths append to the configured prefix.
+The broker remains the destination-policy boundary: `allowedHosts` must grant the exact authority,
+and plaintext loopback requires `allowPlaintextLoopback`. This provider has no credentials; settings
+do not grant credential destinations or HTTP authority.
 
 ```yaml
 constraintSets:
@@ -103,15 +116,17 @@ The provider needs no secrets. Paths, queries, headers, bodies, transport errors
 
 ## Build and inspect
 
-The SDK owns WIT bindings; this repository has no WIT mirror or manual wit-bindgen dependency. From a nested worktree use the actual sibling `provider-workflows/build.sh` checkout path instead of the relative path below. The provider pins `dekopon-provider-sdk = 0.36.0` and the real-component testkit `dekopon-provider-sdk-testkit = 0.36.0`. The deterministic build requires Rust 1.98.1 (`rustc 1.98.1 (48a229cea 2026-09-01)`) and `wasm-tools 1.259.0`.
+The SDK owns WIT bindings; this repository has no WIT mirror or manual wit-bindgen dependency. From a nested worktree use the actual sibling `provider-workflows/build.sh` checkout path instead of the relative path below. The provider pins `dekopon-provider-sdk = 0.38.0` and the real-component testkit `dekopon-provider-sdk-testkit = 0.38.0`. The deterministic build requires Rust 1.98.1 (`rustc 1.98.1 (48a229cea 2026-09-01)`) and `wasm-tools 1.259.0`.
 
 ```console
 ../provider-workflows/build.sh
 ```
 
-The output is `jsonplaceholder-provider.wasm` plus its `.sha256`. The decoded component exports `dekopon:provider/provider@0.4.0`, imports exactly `dekopon:http/client@1.1.0` and `dekopon:stdio/streams@0.1.0`, and imports no WASI. An empty Wasmtime linker intentionally rejects it; execution requires the broker.
+The output is `jsonplaceholder-provider.wasm` plus its `.sha256`. The decoded component exports `dekopon:provider/provider@0.4.0`, imports `dekopon:http/client@1.1.0`, `dekopon:stdio/streams@0.1.0`, and `dekopon:settings/config@0.1.0`, and imports no WASI. An empty Wasmtime linker intentionally rejects it; execution requires the broker.
 
 ## Acceptance
+
+The cassette in `tests/cassettes/jsonplaceholder/0001-GET-posts-7.json` is an authored synthetic cassette v1 fixture derived from the existing scripted GET test, not a recording from the service. Its replay asserts the exact prefixed URI, absent query, method, Accept header, absence of guest Authorization, request count, and projected output.
 
 Tests use injected native responses or literal loopback listeners only. They never contact the public JSONPlaceholder service.
 

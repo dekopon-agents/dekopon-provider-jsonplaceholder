@@ -13,7 +13,8 @@ use std::{
 
 use dekopon_broker_host::Streams;
 use dekopon_broker_host::{
-    BrokerHostError, BrokerHostLimits, BrokerProviderRegistry, asset::AssetInputs,
+    BrokerHostError, BrokerHostLimits, BrokerHostOptions, BrokerProviderRegistry,
+    asset::AssetInputs,
 };
 use dekopon_capability::{
     AuthorizedInvocation, ExecutionConstraints, HttpConstraints, ProposedInvocation,
@@ -31,6 +32,16 @@ fn component() -> PathBuf {
         std::env::var_os("DEKOPON_PROVIDER_COMPONENT")
             .expect("DEKOPON_PROVIDER_COMPONENT must point at the built component"),
     )
+}
+
+fn owner_settings(base_url: &str) -> BrokerHostOptions {
+    BrokerHostOptions {
+        provider_settings: std::sync::Arc::new(std::collections::BTreeMap::from([(
+            "jsonplaceholder".parse().expect("provider ID"),
+            json!({"baseUrl": base_url}).to_string(),
+        )])),
+        ..BrokerHostOptions::default()
+    }
 }
 
 fn authorized(
@@ -246,16 +257,21 @@ async fn exact_get_grant_executes_one_bounded_request_and_records_authority() {
         "200 OK",
         json!({"userId": 2, "id": 7, "title": "mock", "body": "body"}),
     ));
-    let registry = BrokerProviderRegistry::load([component()], BrokerHostLimits::default())
-        .await
-        .expect("broker loads component");
+    let registry = BrokerProviderRegistry::load_with_options(
+        [component()],
+        BrokerHostLimits::default(),
+        None,
+        &owner_settings(&format!("http://{authority}/fixture")),
+    )
+    .await
+    .expect("broker loads component");
     let (assets, mut stdout) = streams();
     let output = registry
         .invoke(
             authorized(
                 "get-success",
                 "jsonplaceholder.posts.get",
-                json!({"postId": 7, "endpoint": format!("http://{authority}")}),
+                json!({"postId": 7}),
                 profile(&authority, "GET"),
             ),
             None,
@@ -277,7 +293,7 @@ async fn exact_get_grant_executes_one_bounded_request_and_records_authority() {
     assert_eq!(output.http_calls[0].status, Some(200));
     assert!(!output.http_calls[0].credential_injected);
     let wire = received.recv().expect("request recorded");
-    assert!(wire.starts_with(b"GET /posts/7 HTTP/1.1\r\n"));
+    assert!(wire.starts_with(b"GET /fixture/posts/7 HTTP/1.1\r\n"));
     assert!(
         !String::from_utf8_lossy(&wire)
             .to_ascii_lowercase()
@@ -292,9 +308,14 @@ async fn create_requires_an_independent_post_grant_and_sends_exact_json() {
         "201 Created",
         json!({"userId": 3, "id": 101, "title": "created", "body": "payload"}),
     ));
-    let registry = BrokerProviderRegistry::load([component()], BrokerHostLimits::default())
-        .await
-        .expect("broker loads component");
+    let registry = BrokerProviderRegistry::load_with_options(
+        [component()],
+        BrokerHostLimits::default(),
+        None,
+        &owner_settings(&format!("http://{authority}/fixture")),
+    )
+    .await
+    .expect("broker loads component");
 
     let denied = registry
         .invoke(
@@ -302,8 +323,7 @@ async fn create_requires_an_independent_post_grant_and_sends_exact_json() {
                 "post-denied-by-read",
                 "jsonplaceholder.posts.create",
                 json!({
-                    "userId": 3, "title": "created", "body": "payload",
-                    "endpoint": format!("http://{authority}")
+                    "userId": 3, "title": "created", "body": "payload"
                 }),
                 profile(&authority, "GET"),
             ),
@@ -328,8 +348,7 @@ async fn create_requires_an_independent_post_grant_and_sends_exact_json() {
                 "post-success",
                 "jsonplaceholder.posts.create",
                 json!({
-                    "userId": 3, "title": "created", "body": "payload",
-                    "endpoint": format!("http://{authority}")
+                    "userId": 3, "title": "created", "body": "payload"
                 }),
                 profile(&authority, "POST"),
             ),
@@ -348,7 +367,7 @@ async fn create_requires_an_independent_post_grant_and_sends_exact_json() {
     assert_eq!(output.http_calls[0].method, "POST");
     assert_eq!(output.http_calls[0].authority, authority);
     let wire = received.recv().expect("request recorded");
-    assert!(wire.starts_with(b"POST /posts HTTP/1.1\r\n"));
+    assert!(wire.starts_with(b"POST /fixture/posts HTTP/1.1\r\n"));
     let body = wire
         .windows(4)
         .position(|window| window == b"\r\n\r\n")
@@ -367,17 +386,21 @@ async fn post_effect_response_failure_is_reported_as_potentially_executed() {
         "201 Created",
         json!({"userId": 9, "id": 101, "title": "wrong", "body": "wrong"}),
     ));
-    let registry = BrokerProviderRegistry::load([component()], BrokerHostLimits::default())
-        .await
-        .expect("broker loads component");
+    let registry = BrokerProviderRegistry::load_with_options(
+        [component()],
+        BrokerHostLimits::default(),
+        None,
+        &owner_settings(&format!("http://{authority}/fixture")),
+    )
+    .await
+    .expect("broker loads component");
     let failure = registry
         .invoke(
             authorized(
                 "post-invalid-response",
                 "jsonplaceholder.posts.create",
                 json!({
-                    "userId": 3, "title": "created", "body": "payload",
-                    "endpoint": format!("http://{authority}")
+                    "userId": 3, "title": "created", "body": "payload"
                 }),
                 profile(&authority, "POST"),
             ),
@@ -396,7 +419,7 @@ async fn post_effect_response_failure_is_reported_as_potentially_executed() {
         received
             .recv()
             .expect("request executed")
-            .starts_with(b"POST /posts")
+            .starts_with(b"POST /fixture/posts")
     );
     server.join().expect("fixture exits");
 }
@@ -414,13 +437,15 @@ async fn bounded_response_runs_under_committed_fuel_and_memory_ceilings() {
             "body": "b".repeat(16 * 1024)
         }),
     ));
-    let registry = BrokerProviderRegistry::load(
+    let registry = BrokerProviderRegistry::load_with_options(
         [component()],
         BrokerHostLimits {
             fuel: FUEL,
             max_memory_bytes: MEMORY,
             ..BrokerHostLimits::default()
         },
+        None,
+        &owner_settings(&format!("http://{authority}/fixture")),
     )
     .await
     .expect("component describes under fixed resources");
@@ -435,7 +460,7 @@ async fn bounded_response_runs_under_committed_fuel_and_memory_ceilings() {
             authorized(
                 "bounded-response",
                 "jsonplaceholder.posts.get",
-                json!({"postId": 100, "endpoint": format!("http://{authority}")}),
+                json!({"postId": 100}),
                 profile(&authority, "GET"),
             ),
             None,
@@ -455,10 +480,22 @@ async fn bounded_response_runs_under_committed_fuel_and_memory_ceilings() {
 
 #[tokio::test(flavor = "multi_thread")]
 async fn wrong_authority_and_plaintext_policy_fail_before_network() {
-    let registry = BrokerProviderRegistry::load([component()], BrokerHostLimits::default())
-        .await
-        .expect("broker loads component");
+    let registry = BrokerProviderRegistry::load_with_options(
+        [component()],
+        BrokerHostLimits::default(),
+        None,
+        &owner_settings("http://127.0.0.1:9"),
+    )
+    .await
+    .expect("broker loads component");
+    let mut plaintext_denied = profile("127.0.0.1:9", "GET");
+    plaintext_denied
+        .http
+        .as_mut()
+        .unwrap()
+        .allow_plaintext_loopback = false;
     for (id, constraints) in [
+        ("plaintext-denied", plaintext_denied),
         ("wrong-authority", profile("127.0.0.1:10", "GET")),
         ("wrong-method", profile("127.0.0.1:9", "POST")),
         ("missing-http", ExecutionConstraints::default()),
@@ -468,7 +505,7 @@ async fn wrong_authority_and_plaintext_policy_fail_before_network() {
                 authorized(
                     id,
                     "jsonplaceholder.posts.get",
-                    json!({"postId": 1, "endpoint": "http://127.0.0.1:9"}),
+                    json!({"postId": 1}),
                     constraints,
                 ),
                 None,
