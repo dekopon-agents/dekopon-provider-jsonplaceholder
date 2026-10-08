@@ -103,7 +103,7 @@ The provider needs no secrets. Paths, queries, headers, bodies, transport errors
 
 ## Build and inspect
 
-The SDK owns WIT bindings; this repository has no WIT mirror or manual wit-bindgen dependency. From a nested worktree use the actual sibling `provider-workflows/build.sh` checkout path instead of the relative path below. The provider pins `dekopon-provider-sdk = 0.34.0` and the real-component testkit `dekopon-provider-sdk-testkit = 0.34.0`. The deterministic build requires Rust 1.98.1 (`rustc 1.98.1 (48a229cea 2026-09-01)`) and `wasm-tools 1.259.0`.
+The SDK owns WIT bindings; this repository has no WIT mirror or manual wit-bindgen dependency. From a nested worktree use the actual sibling `provider-workflows/build.sh` checkout path instead of the relative path below. The provider pins `dekopon-provider-sdk = 0.36.0` and the real-component testkit `dekopon-provider-sdk-testkit = 0.36.0`. The deterministic build requires Rust 1.98.1 (`rustc 1.98.1 (48a229cea 2026-09-01)`) and `wasm-tools 1.259.0`.
 
 ```console
 ../provider-workflows/build.sh
