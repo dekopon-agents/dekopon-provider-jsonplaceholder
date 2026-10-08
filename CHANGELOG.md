@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.7.0] - 2026-10-08
+
+### Changed
+
+- Remove model-controlled `endpoint` inputs and `--endpoint` flags from both capabilities. Configure `providerSettings.jsonplaceholder.baseUrl` instead; it defaults to `https://jsonplaceholder.typicode.com`, preserves path prefixes, and leaves broker destination grants unchanged.
+- Pin the provider SDK, testkit, and broker test dependencies to 0.38.0; validate owner settings before requests and add synthetic cassette replay coverage.
+
+The `jsonplaceholder.posts.create` capability remains an external write. JSONPlaceholder returns a synthetic create response but does not persist the new post.
+
 ## [0.6.1] - 2026-10-08
 
 ### Changed
