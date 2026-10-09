@@ -29,18 +29,18 @@ pub(crate) const POSTS_CREATE: &str = "jsonplaceholder.posts.create";
 /// `jsonplaceholder.posts.get`.
 pub(crate) const COMMAND_WORD: &str = "placeholder";
 
-#[derive(Default, Deserialize)]
+const JSONPLACEHOLDER_API: Base = Base::from_static("https://jsonplaceholder.typicode.com");
+
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 #[allow(missing_docs)]
 pub struct JsonPlaceholderSettings {
-    base_url: Option<Base>,
+    #[serde(default = "default_base")]
+    base_url: Base,
 }
 
-impl JsonPlaceholderSettings {
-    fn base(self) -> Base {
-        self.base_url
-            .unwrap_or(Base::from_static("https://jsonplaceholder.typicode.com"))
-    }
+fn default_base() -> Base {
+    JSONPLACEHOLDER_API
 }
 
 const MAX_TITLE_BYTES: usize = 256;
@@ -129,7 +129,7 @@ impl Capability for GetPost {
         out: &mut Stdout,
     ) -> Result<(), Self::Error> {
         emit(
-            get_post(input, &settings.into_inner().base(), |request| {
+            get_post(input, &settings.into_inner().base_url, |request| {
                 http.send(request)
             })?,
             out,
@@ -151,7 +151,7 @@ impl Capability for CreatePost {
         out: &mut Stdout,
     ) -> Result<(), Self::Error> {
         emit(
-            create_post(input, &settings.into_inner().base(), |request| {
+            create_post(input, &settings.into_inner().base_url, |request| {
                 http.send(request)
             })?,
             out,
@@ -167,12 +167,12 @@ where
     match capability.as_str() {
         POSTS_GET => get_post(
             serde_json::from_value(input).map_err(|_| invalid_input())?,
-            &JsonPlaceholderSettings::default().base(),
+            &default_base(),
             send,
         ),
         POSTS_CREATE => create_post(
             serde_json::from_value(input).map_err(|_| invalid_input())?,
-            &JsonPlaceholderSettings::default().base(),
+            &default_base(),
             send,
         ),
         _ => Err(ProviderError::new(
