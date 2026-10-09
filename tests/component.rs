@@ -93,6 +93,7 @@ fn settings_and_model_origin_controls_fail_before_requests() {
             json!({"baseUrl": "https://"}),
             json!({"baseUrl": "https://fixture.example.test/ space"}),
             json!({"baseUrl": 42}),
+            json!({"baseUrl": null}),
             json!({"endpoint": "http://127.0.0.1:43123"}),
         ] {
             let native = Native::<JsonPlaceholder>::new().settings(settings);
